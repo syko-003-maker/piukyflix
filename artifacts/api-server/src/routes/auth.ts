@@ -7,6 +7,8 @@ import { randomUUID } from "crypto";
 
 const router = Router();
 
+const ADMIN_EMAILS = ["seanloulou33@gmail.com"];
+
 router.get("/auth/me", async (req, res) => {
   const { userId } = getAuth(req);
   if (!userId) {
@@ -42,9 +44,11 @@ router.post("/auth/sync", async (req, res) => {
 
   const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId)).limit(1);
 
+  const isAdmin = ADMIN_EMAILS.includes(email);
+
   if (existing[0]) {
     const updated = await db.update(usersTable)
-      .set({ email, username, avatarUrl })
+      .set({ email, username, avatarUrl, ...(isAdmin ? { role: "admin" } : {}) })
       .where(eq(usersTable.clerkId, userId))
       .returning();
     const u = updated[0];
@@ -58,7 +62,7 @@ router.post("/auth/sync", async (req, res) => {
     email,
     username,
     avatarUrl,
-    role: "user",
+    role: isAdmin ? "admin" : "user",
   }).returning();
   const u = newUser[0];
   res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, createdAt: u.createdAt.toISOString() });

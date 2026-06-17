@@ -9,6 +9,6 @@
   <g transform="translate(10, 15)">
     <path d="M10,25 Q15,5 35,5 Q50,5 50,20 Q50,45 10,45 Q5,45 5,35 Z" fill="url(#grad1)" />
     <path d="M25,25 L45,15 L45,35 Z" fill="#ffffff" />
-    <text x="60" y="38" font-family="'Inter', sans-serif" font-weight="900" font-size="38" fill="#ffffff" letter-spacing="-1">Stream<tspan fill="#e50914">Flix</tspan></text>
+    <text x="60" y="38" font-family="'Inter', sans-serif" font-weight="900" font-size="38" fill="#ffffff" letter-spacing="-1">Piuky<tspan fill="#e50914">Flix</tspan></text>
   </g>
 </svg>

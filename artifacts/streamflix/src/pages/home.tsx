@@ -74,7 +74,7 @@ export default function Home() {
 
       <footer className="py-8 border-t border-white/10 bg-background mt-auto">
         <div className="container text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} StreamFlix. Tous droits réservés.</p>
+          <p>&copy; {new Date().getFullYear()} PiukyFlix. Tous droits réservés.</p>
         </div>
       </footer>
     </div>

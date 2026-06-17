@@ -23,7 +23,7 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center gap-2">
-            <img src={`${basePath}/logo.svg`} alt="StreamFlix" className="h-8 w-auto" />
+            <img src={`${basePath}/logo.svg`} alt="PiukyFlix" className="h-8 w-auto" />
           </Link>
           <Show when="signed-in">
             <nav className="hidden md:flex gap-6">

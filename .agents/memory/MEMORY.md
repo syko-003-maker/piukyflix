@@ -1,0 +1,4 @@
+- [StreamFlix inArray fix](streamflix-drizzle-inarray.md) — must use drizzle `inArray()` not raw `ANY($n::int[])` SQL for array lookups
+- [StreamFlix API client search shape](streamflix-search-shape.md) — `useSearchContent` returns `Content[]` directly, not `{ items: Content[] }`
+- [StreamFlix useRef TS fix](streamflix-useref-ts.md) — strict TS requires `useRef<T | null>(null)` not bare `useRef<T>()`
+- [StreamFlix generated hook queryKey](streamflix-querykey.md) — orval-generated hooks require `queryKey` in query options; import `get*QueryKey` helpers and pass them explicitly

@@ -1,22 +1,45 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: StreamFlix API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication and user profile
+  - name: categories
+    description: Category management
+  - name: content
+    description: Movies and series management
+  - name: seasons
+    description: Season management for series
+  - name: episodes
+    description: Episode management
+  - name: favorites
+    description: User favorites
+  - name: watchHistory
+    description: Watch history and progress
+  - name: ratings
+    description: Content ratings
+  - name: comments
+    description: Content comments
+  - name: search
+    description: Search functionality
+  - name: admin
+    description: Admin dashboard and stats
+  - name: storage
+    description: File upload
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +47,804 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+
+  /auth/sync:
+    post:
+      operationId: syncUser
+      tags: [auth]
+      summary: Sync Clerk user to database
+      responses:
+        "200":
+          description: User synced
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  # CATEGORIES
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List all categories
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [categories]
+      summary: Create a category (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    get:
+      operationId: getCategory
+      tags: [categories]
+      summary: Get category by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    patch:
+      operationId: updateCategory
+      tags: [categories]
+      summary: Update category (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    delete:
+      operationId: deleteCategory
+      tags: [categories]
+      summary: Delete category (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # CONTENT (Movies & Series)
+  /content:
+    get:
+      operationId: listContent
+      tags: [content]
+      summary: List all movies and series
+      parameters:
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [movie, series]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentListResponse"
+    post:
+      operationId: createContent
+      tags: [content]
+      summary: Create movie or series (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Content"
+
+  /content/featured:
+    get:
+      operationId: getFeaturedContent
+      tags: [content]
+      summary: Get featured/banner content
+      responses:
+        "200":
+          description: Featured content
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Content"
+
+  /content/latest:
+    get:
+      operationId: getLatestContent
+      tags: [content]
+      summary: Get latest additions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Latest content
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Content"
+
+  /content/popular:
+    get:
+      operationId: getPopularContent
+      tags: [content]
+      summary: Get popular content by views and ratings
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Popular content
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Content"
+
+  /content/{id}:
+    get:
+      operationId: getContent
+      tags: [content]
+      summary: Get movie or series by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Content detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentDetail"
+    patch:
+      operationId: updateContent
+      tags: [content]
+      summary: Update movie or series (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Content"
+    delete:
+      operationId: deleteContent
+      tags: [content]
+      summary: Delete content (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # SEASONS
+  /content/{contentId}/seasons:
+    get:
+      operationId: listSeasons
+      tags: [seasons]
+      summary: List seasons for a series
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of seasons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Season"
+    post:
+      operationId: createSeason
+      tags: [seasons]
+      summary: Create a season (admin)
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeasonInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Season"
+
+  /seasons/{seasonId}:
+    patch:
+      operationId: updateSeason
+      tags: [seasons]
+      summary: Update season (admin)
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeasonUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Season"
+    delete:
+      operationId: deleteSeason
+      tags: [seasons]
+      summary: Delete season (admin)
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # EPISODES
+  /seasons/{seasonId}/episodes:
+    get:
+      operationId: listEpisodes
+      tags: [episodes]
+      summary: List episodes for a season
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of episodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Episode"
+    post:
+      operationId: createEpisode
+      tags: [episodes]
+      summary: Create an episode (admin)
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EpisodeInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Episode"
+
+  /episodes/{episodeId}:
+    patch:
+      operationId: updateEpisode
+      tags: [episodes]
+      summary: Update episode (admin)
+      parameters:
+        - name: episodeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EpisodeUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Episode"
+    delete:
+      operationId: deleteEpisode
+      tags: [episodes]
+      summary: Delete episode (admin)
+      parameters:
+        - name: episodeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # FAVORITES
+  /favorites:
+    get:
+      operationId: listFavorites
+      tags: [favorites]
+      summary: Get current user favorites
+      responses:
+        "200":
+          description: Favorite content list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Content"
+
+  /favorites/{contentId}:
+    post:
+      operationId: addFavorite
+      tags: [favorites]
+      summary: Add content to favorites
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Added
+    delete:
+      operationId: removeFavorite
+      tags: [favorites]
+      summary: Remove content from favorites
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+
+  # WATCH HISTORY
+  /watch-history:
+    get:
+      operationId: listWatchHistory
+      tags: [watchHistory]
+      summary: Get current user watch history
+      responses:
+        "200":
+          description: Watch history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WatchHistoryEntry"
+
+  /watch-history/{contentId}:
+    post:
+      operationId: updateWatchProgress
+      tags: [watchHistory]
+      summary: Update watch progress for content
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WatchProgressInput"
+      responses:
+        "200":
+          description: Progress updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchHistoryEntry"
+    get:
+      operationId: getWatchProgress
+      tags: [watchHistory]
+      summary: Get watch progress for specific content
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Watch progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchHistoryEntry"
+
+  # RATINGS
+  /ratings/{contentId}:
+    post:
+      operationId: rateContent
+      tags: [ratings]
+      summary: Rate content (1-5 stars)
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RatingInput"
+      responses:
+        "200":
+          description: Rating saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+    get:
+      operationId: getUserRating
+      tags: [ratings]
+      summary: Get current user's rating for content
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User rating
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+
+  # COMMENTS
+  /comments/{contentId}:
+    get:
+      operationId: listComments
+      tags: [comments]
+      summary: Get comments for content
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+    post:
+      operationId: addComment
+      tags: [comments]
+      summary: Add a comment to content
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentInput"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
+  /comments/item/{commentId}:
+    delete:
+      operationId: deleteComment
+      tags: [comments]
+      summary: Delete a comment
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # SEARCH
+  /search:
+    get:
+      operationId: searchContent
+      tags: [search]
+      summary: Search movies and series
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [movie, series]
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Content"
+
+  # ADMIN
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get admin dashboard statistics
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/users:
+    get:
+      operationId: listUsers
+      tags: [admin]
+      summary: List all users (admin)
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserProfile"
+
+  /admin/users/{userId}/role:
+    patch:
+      operationId: updateUserRole
+      tags: [admin]
+      summary: Update user role (admin)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdate"
+      responses:
+        "200":
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /admin/users/{userId}:
+    delete:
+      operationId: deleteUser
+      tags: [admin]
+      summary: Delete user (admin)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  # STORAGE
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResult"
+
+  /storage/public-objects/{path}:
+    get:
+      operationId: getPublicObject
+      tags: [storage]
+      summary: Get a public object
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+
+  /storage/objects/{path}:
+    get:
+      operationId: getPrivateObject
+      tags: [storage]
+      summary: Get a private object
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +855,529 @@ components:
       required:
         - status
 
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        clerkId:
+          type: string
+        email:
+          type: string
+        username:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [user, admin, moderator]
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - clerkId
+        - email
+        - role
+        - createdAt
+
+    UserRoleUpdate:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, admin, moderator]
+      required:
+        - role
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - createdAt
+
+    CategoryInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    Content:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        posterUrl:
+          type: ["string", "null"]
+        backdropUrl:
+          type: ["string", "null"]
+        videoUrl:
+          type: ["string", "null"]
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        genre:
+          type: ["string", "null"]
+        releaseYear:
+          type: ["integer", "null"]
+        durationMinutes:
+          type: ["integer", "null"]
+        contentType:
+          type: string
+          enum: [movie, series]
+        isFeatured:
+          type: boolean
+        averageRating:
+          type: ["number", "null"]
+        viewCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - contentType
+        - isFeatured
+        - viewCount
+        - createdAt
+
+    ContentDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        posterUrl:
+          type: ["string", "null"]
+        backdropUrl:
+          type: ["string", "null"]
+        videoUrl:
+          type: ["string", "null"]
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        genre:
+          type: ["string", "null"]
+        releaseYear:
+          type: ["integer", "null"]
+        durationMinutes:
+          type: ["integer", "null"]
+        contentType:
+          type: string
+          enum: [movie, series]
+        isFeatured:
+          type: boolean
+        averageRating:
+          type: ["number", "null"]
+        viewCount:
+          type: integer
+        createdAt:
+          type: string
+        seasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeasonWithEpisodes"
+        isFavorite:
+          type: boolean
+        userRating:
+          type: ["integer", "null"]
+        watchProgress:
+          type: ["integer", "null"]
+      required:
+        - id
+        - title
+        - contentType
+        - isFeatured
+        - viewCount
+        - createdAt
+        - seasons
+        - isFavorite
+
+    ContentListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Content"
+        total:
+          type: integer
+      required:
+        - items
+        - total
+
+    ContentInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        posterUrl:
+          type: string
+        backdropUrl:
+          type: string
+        videoUrl:
+          type: string
+        categoryId:
+          type: integer
+        genre:
+          type: string
+        releaseYear:
+          type: integer
+        durationMinutes:
+          type: integer
+        contentType:
+          type: string
+          enum: [movie, series]
+        isFeatured:
+          type: boolean
+      required:
+        - title
+        - contentType
+
+    ContentUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        posterUrl:
+          type: string
+        backdropUrl:
+          type: string
+        videoUrl:
+          type: string
+        categoryId:
+          type: integer
+        genre:
+          type: string
+        releaseYear:
+          type: integer
+        durationMinutes:
+          type: integer
+        contentType:
+          type: string
+          enum: [movie, series]
+        isFeatured:
+          type: boolean
+
+    Season:
+      type: object
+      properties:
+        id:
+          type: integer
+        contentId:
+          type: integer
+        seasonNumber:
+          type: integer
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - contentId
+        - seasonNumber
+        - createdAt
+
+    SeasonWithEpisodes:
+      type: object
+      properties:
+        id:
+          type: integer
+        contentId:
+          type: integer
+        seasonNumber:
+          type: integer
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        episodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Episode"
+      required:
+        - id
+        - contentId
+        - seasonNumber
+        - createdAt
+        - episodes
+
+    SeasonInput:
+      type: object
+      properties:
+        seasonNumber:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+      required:
+        - seasonNumber
+
+    SeasonUpdate:
+      type: object
+      properties:
+        seasonNumber:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+
+    Episode:
+      type: object
+      properties:
+        id:
+          type: integer
+        seasonId:
+          type: integer
+        episodeNumber:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        videoUrl:
+          type: ["string", "null"]
+        thumbnailUrl:
+          type: ["string", "null"]
+        durationMinutes:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - seasonId
+        - episodeNumber
+        - title
+        - createdAt
+
+    EpisodeInput:
+      type: object
+      properties:
+        episodeNumber:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        videoUrl:
+          type: string
+        thumbnailUrl:
+          type: string
+        durationMinutes:
+          type: integer
+      required:
+        - episodeNumber
+        - title
+
+    EpisodeUpdate:
+      type: object
+      properties:
+        episodeNumber:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        videoUrl:
+          type: string
+        thumbnailUrl:
+          type: string
+        durationMinutes:
+          type: integer
+
+    WatchHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        contentId:
+          type: integer
+        episodeId:
+          type: ["integer", "null"]
+        progressSeconds:
+          type: integer
+        completed:
+          type: boolean
+        watchedAt:
+          type: string
+        content:
+          $ref: "#/components/schemas/Content"
+      required:
+        - id
+        - userId
+        - contentId
+        - progressSeconds
+        - completed
+        - watchedAt
+
+    WatchProgressInput:
+      type: object
+      properties:
+        progressSeconds:
+          type: integer
+        episodeId:
+          type: integer
+        completed:
+          type: boolean
+      required:
+        - progressSeconds
+
+    Rating:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        contentId:
+          type: integer
+        score:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - contentId
+        - score
+        - createdAt
+
+    RatingInput:
+      type: object
+      properties:
+        score:
+          type: integer
+      required:
+        - score
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        contentId:
+          type: integer
+        text:
+          type: string
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - contentId
+        - text
+        - createdAt
+
+    CommentInput:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+
+    AdminStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalContent:
+          type: integer
+        totalMovies:
+          type: integer
+        totalSeries:
+          type: integer
+        totalCategories:
+          type: integer
+        totalWatchEvents:
+          type: integer
+        totalComments:
+          type: integer
+        topContent:
+          type: array
+          items:
+            $ref: "#/components/schemas/Content"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/WatchHistoryEntry"
+      required:
+        - totalUsers
+        - totalContent
+        - totalMovies
+        - totalSeries
+        - totalCategories
+        - totalWatchEvents
+        - totalComments
+        - topContent
+        - recentActivity
+
+    UploadUrlRequest:
+      type: object
+      properties:
+        filename:
+          type: string
+        contentType:
+          type: string
+      required:
+        - filename
+        - contentType
+
+    UploadUrlResult:
+      type: object
+      properties:
+        uploadUrl:
+          type: string
+        objectPath:
+          type: string
+      required:
+        - uploadUrl
+        - objectPath

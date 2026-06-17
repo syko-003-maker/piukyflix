@@ -12,7 +12,7 @@ export default function AdminUsers() {
   const updateRole = useUpdateUserRole();
 
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.")) {
       deleteUser.mutate({ userId: id }, {
         onSuccess: () => refetch()
       });
@@ -32,25 +32,25 @@ export default function AdminUsers() {
       
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Manage Users</h1>
-          <p className="text-muted-foreground mt-1">View and manage user accounts and permissions</p>
+          <h1 className="text-3xl font-bold text-white">Gérer les utilisateurs</h1>
+          <p className="text-muted-foreground mt-1">Consultez et gérez les comptes et permissions</p>
         </div>
 
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <Table>
             <TableHeader className="bg-secondary/50">
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground">User</TableHead>
-                <TableHead className="text-muted-foreground">Email</TableHead>
-                <TableHead className="text-muted-foreground">Role</TableHead>
-                <TableHead className="text-muted-foreground">Joined</TableHead>
+                <TableHead className="text-muted-foreground">Utilisateur</TableHead>
+                <TableHead className="text-muted-foreground">E-mail</TableHead>
+                <TableHead className="text-muted-foreground">Rôle</TableHead>
+                <TableHead className="text-muted-foreground">Inscrit le</TableHead>
                 <TableHead className="text-muted-foreground text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Chargement…</TableCell>
                 </TableRow>
               ) : users?.map(u => (
                 <TableRow key={u.id} className="border-border hover:bg-secondary/30">
@@ -60,7 +60,7 @@ export default function AdminUsers() {
                         <AvatarImage src={u.avatarUrl || ""} />
                         <AvatarFallback>{u.username?.charAt(0) || u.email.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <span className="font-medium text-white">{u.username || "Unknown"}</span>
+                      <span className="font-medium text-white">{u.username || "Inconnu"}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-gray-300">{u.email}</TableCell>
@@ -68,10 +68,10 @@ export default function AdminUsers() {
                     <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                       u.role === 'admin' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-secondary text-muted-foreground border border-border'
                     }`}>
-                      {u.role}
+                      {u.role === 'admin' ? 'Admin' : 'Utilisateur'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-gray-300">{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-gray-300">{new Date(u.createdAt).toLocaleDateString("fr-FR")}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button 
@@ -80,7 +80,7 @@ export default function AdminUsers() {
                         className={u.role === 'admin' ? "text-primary hover:text-primary/80" : "text-gray-400 hover:text-white"}
                         onClick={() => handleToggleRole(u.id, u.role)}
                         disabled={updateRole.isPending || u.id === me?.id}
-                        title={u.role === 'admin' ? "Remove Admin" : "Make Admin"}
+                        title={u.role === 'admin' ? "Retirer les droits admin" : "Promouvoir admin"}
                       >
                         {u.role === 'admin' ? <Shield className="h-4 w-4" /> : <User className="h-4 w-4" />}
                       </Button>
@@ -99,7 +99,7 @@ export default function AdminUsers() {
               ))}
               {users?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No users found</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Aucun utilisateur trouvé</TableCell>
                 </TableRow>
               )}
             </TableBody>

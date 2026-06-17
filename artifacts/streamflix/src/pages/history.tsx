@@ -3,6 +3,7 @@ import { useListWatchHistory } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { Clock, Play, Film, Tv } from "lucide-react";
 import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function History() {
   const { data: history, isLoading } = useListWatchHistory();
@@ -13,7 +14,7 @@ export default function History() {
       
       <main className="flex-1 container px-4 md:px-6 py-12">
         <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-3xl font-bold text-white">Continue Watching</h1>
+          <h1 className="text-3xl font-bold text-white">Continuer à regarder</h1>
         </div>
 
         {isLoading ? (
@@ -45,7 +46,6 @@ export default function History() {
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
                       <Play className="h-10 w-10 text-white fill-white" />
                     </div>
-                    {/* Progress Bar overlay */}
                     {entry.content?.durationMinutes && entry.progressSeconds > 0 && (
                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-700">
                          <div 
@@ -59,14 +59,16 @@ export default function History() {
                   <div className="flex-1 min-w-0 py-2 w-full">
                     <div className="flex items-center gap-2 mb-1">
                       {entry.content?.contentType === 'movie' ? <Film className="h-4 w-4 text-muted-foreground" /> : <Tv className="h-4 w-4 text-muted-foreground" />}
-                      <span className="text-xs font-medium text-muted-foreground uppercase">{entry.content?.contentType}</span>
+                      <span className="text-xs font-medium text-muted-foreground uppercase">
+                        {entry.content?.contentType === 'movie' ? 'Film' : 'Série'}
+                      </span>
                     </div>
-                    <h3 className="text-lg font-bold text-white truncate">{entry.content?.title || "Unknown Content"}</h3>
+                    <h3 className="text-lg font-bold text-white truncate">{entry.content?.title || "Contenu inconnu"}</h3>
                     <p className="text-sm text-gray-400 mt-1 line-clamp-2">
                       {entry.content?.description}
                     </p>
                     <div className="mt-2 text-xs text-muted-foreground">
-                      Last watched: {format(new Date(entry.watchedAt), "MMM d, yyyy")}
+                      Vu le : {format(new Date(entry.watchedAt), "d MMM yyyy", { locale: fr })}
                     </div>
                   </div>
                 </div>
@@ -76,13 +78,13 @@ export default function History() {
         ) : (
           <div className="text-center py-32 text-muted-foreground bg-secondary/20 rounded-xl border border-white/5">
             <Clock className="h-16 w-16 mx-auto mb-4 opacity-20" />
-            <p className="text-2xl font-bold text-white mb-2">No watch history yet</p>
+            <p className="text-2xl font-bold text-white mb-2">Aucun historique de visionnage</p>
             <p className="max-w-md mx-auto">
-              Titles you start watching will appear here so you can easily pick up where you left off.
+              Les titres que vous commencez à regarder apparaîtront ici pour que vous puissiez reprendre là où vous vous êtes arrêté.
             </p>
             <Link href="/browse">
               <span className="inline-block mt-6 px-6 py-2 bg-primary hover:bg-primary/90 text-white font-semibold rounded-md transition-colors">
-                Explore Content
+                Explorer le catalogue
               </span>
             </Link>
           </div>

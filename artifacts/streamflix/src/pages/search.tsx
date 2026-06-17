@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { useSearchContent, getSearchContentQueryKey } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { Search as SearchIcon, Film, Tv } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -26,7 +26,7 @@ export default function Search() {
             <Input 
               autoFocus
               className="w-full h-16 pl-14 text-xl bg-secondary/50 border-white/10 text-white rounded-full focus-visible:ring-primary focus-visible:border-primary"
-              placeholder="Search for movies, series, or genres..."
+              placeholder="Rechercher des films, séries ou genres..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -58,7 +58,9 @@ export default function Search() {
                         <h3 className="text-white font-bold text-sm truncate">{item.title}</h3>
                         <div className="flex items-center text-xs text-gray-300 gap-2 mt-1">
                           <span>{item.releaseYear}</span>
-                          <span className="capitalize border border-white/20 px-1.5 rounded">{item.contentType}</span>
+                          <span className="capitalize border border-white/20 px-1.5 rounded">
+                            {item.contentType === 'movie' ? 'Film' : 'Série'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -70,16 +72,16 @@ export default function Search() {
             {!isLoading && debouncedQuery.length > 1 && (!results || results.length === 0) && (
               <div className="text-center py-20 text-muted-foreground">
                 <SearchIcon className="h-16 w-16 mx-auto mb-4 opacity-20" />
-                <p className="text-xl font-medium text-white mb-2">No results found</p>
-                <p>Try searching for a different title, genre, or keyword.</p>
+                <p className="text-xl font-medium text-white mb-2">Aucun résultat trouvé</p>
+                <p>Essayez un autre titre, genre ou mot-clé.</p>
               </div>
             )}
             
             {debouncedQuery.length <= 1 && (
               <div className="text-center py-20 text-muted-foreground">
                 <SearchIcon className="h-16 w-16 mx-auto mb-4 opacity-20" />
-                <p className="text-xl font-medium text-white mb-2">Find your next favorite</p>
-                <p>Search across thousands of movies and TV shows.</p>
+                <p className="text-xl font-medium text-white mb-2">Trouvez votre prochain coup de cœur</p>
+                <p>Recherchez parmi des milliers de films et séries.</p>
               </div>
             )}
           </div>

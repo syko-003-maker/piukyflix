@@ -6,10 +6,10 @@ export function AdminSidebar() {
   const [location] = useLocation();
 
   const navItems = [
-    { href: "/admin", label: "Overview", icon: LayoutDashboard },
-    { href: "/admin/content", label: "Content", icon: Film },
-    { href: "/admin/categories", label: "Categories", icon: FolderTree },
-    { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin", label: "Vue d'ensemble", icon: LayoutDashboard },
+    { href: "/admin/content", label: "Contenu", icon: Film },
+    { href: "/admin/categories", label: "Catégories", icon: FolderTree },
+    { href: "/admin/users", label: "Utilisateurs", icon: Users },
   ];
 
   return (
@@ -17,13 +17,13 @@ export function AdminSidebar() {
       <div className="h-16 flex items-center px-6 border-b border-border">
         <Link href="/" className="flex items-center gap-2 text-white hover:text-white/80 transition-colors">
           <ArrowLeft className="h-4 w-4" />
-          <span className="font-bold">Exit Admin</span>
+          <span className="font-bold">Quitter l'admin</span>
         </Link>
       </div>
       
       <div className="flex-1 py-6 px-4 space-y-2">
         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 px-2">
-          Management
+          Gestion
         </div>
         <nav className="space-y-1">
           {navItems.map((item) => {

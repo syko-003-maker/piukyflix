@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Show, useClerk, useUser } from "@clerk/react";
-import { Search, Bell, User, Menu, LogOut, ChevronDown, MonitorPlay } from "lucide-react";
+import { Search, LogOut, MonitorPlay } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,16 +28,16 @@ export function Navbar() {
           <Show when="signed-in">
             <nav className="hidden md:flex gap-6">
               <Link href="/browse" className="text-sm font-medium transition-colors hover:text-primary">
-                Browse
+                Catalogue
               </Link>
               <Link href="/search" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                Search
+                Recherche
               </Link>
               <Link href="/favorites" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                My List
+                Ma liste
               </Link>
               <Link href="/history" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                History
+                Historique
               </Link>
             </nav>
           </Show>
@@ -47,7 +47,7 @@ export function Navbar() {
           <Show when="signed-in">
             <Button variant="ghost" size="icon" onClick={() => setLocation("/search")} className="text-muted-foreground hover:text-white">
               <Search className="h-5 w-5" />
-              <span className="sr-only">Search</span>
+              <span className="sr-only">Rechercher</span>
             </Button>
             
             <DropdownMenu>
@@ -71,12 +71,12 @@ export function Navbar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setLocation("/admin")}>
                   <MonitorPlay className="mr-2 h-4 w-4" />
-                  <span>Admin Dashboard</span>
+                  <span>Tableau de bord admin</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut({ redirectUrl: basePath || "/" })}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>Se déconnecter</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -84,10 +84,10 @@ export function Navbar() {
           
           <Show when="signed-out">
             <Button variant="ghost" onClick={() => setLocation("/sign-in")} className="text-white hover:text-primary hover:bg-transparent">
-              Sign In
+              Se connecter
             </Button>
             <Button onClick={() => setLocation("/sign-up")} className="bg-primary hover:bg-primary/90 text-white font-semibold">
-              Get Started
+              Commencer
             </Button>
           </Show>
         </div>

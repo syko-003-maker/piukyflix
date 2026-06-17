@@ -3,14 +3,13 @@ import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Edit, Trash2, Plus } from "lucide-react";
-import { Link } from "wouter";
 
 export default function AdminContent() {
   const { data: content, isLoading, refetch } = useListContent({ limit: 100 });
   const deleteContent = useDeleteContent();
 
   const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this content?")) {
+    if (confirm("Êtes-vous sûr de vouloir supprimer ce contenu ?")) {
       deleteContent.mutate({ id }, {
         onSuccess: () => refetch()
       });
@@ -24,13 +23,12 @@ export default function AdminContent() {
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Manage Content</h1>
-            <p className="text-muted-foreground mt-1">Add, edit, or remove movies and series</p>
+            <h1 className="text-3xl font-bold text-white">Gérer le contenu</h1>
+            <p className="text-muted-foreground mt-1">Ajouter, modifier ou supprimer des films et séries</p>
           </div>
-          {/* Note: Form implementation omitted for brevity in this task, but normally this would open a modal or navigate to a form page */}
           <Button className="bg-primary hover:bg-primary/90 text-white font-bold">
             <Plus className="mr-2 h-4 w-4" />
-            Add Content
+            Ajouter
           </Button>
         </div>
 
@@ -39,18 +37,18 @@ export default function AdminContent() {
             <TableHeader className="bg-secondary/50">
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground w-16">ID</TableHead>
-                <TableHead className="text-muted-foreground">Title</TableHead>
+                <TableHead className="text-muted-foreground">Titre</TableHead>
                 <TableHead className="text-muted-foreground">Type</TableHead>
-                <TableHead className="text-muted-foreground">Category</TableHead>
-                <TableHead className="text-muted-foreground">Year</TableHead>
-                <TableHead className="text-muted-foreground">Views</TableHead>
+                <TableHead className="text-muted-foreground">Catégorie</TableHead>
+                <TableHead className="text-muted-foreground">Année</TableHead>
+                <TableHead className="text-muted-foreground">Vues</TableHead>
                 <TableHead className="text-muted-foreground text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Chargement…</TableCell>
                 </TableRow>
               ) : content?.items.map(item => (
                 <TableRow key={item.id} className="border-border hover:bg-secondary/30">
@@ -63,9 +61,11 @@ export default function AdminContent() {
                       <span className="font-medium text-white">{item.title}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="capitalize text-gray-300">{item.contentType}</TableCell>
-                  <TableCell className="text-gray-300">{item.categoryName || "-"}</TableCell>
-                  <TableCell className="text-gray-300">{item.releaseYear || "-"}</TableCell>
+                  <TableCell className="text-gray-300">
+                    {item.contentType === 'movie' ? 'Film' : 'Série'}
+                  </TableCell>
+                  <TableCell className="text-gray-300">{item.categoryName || "—"}</TableCell>
+                  <TableCell className="text-gray-300">{item.releaseYear || "—"}</TableCell>
                   <TableCell className="text-gray-300">{item.viewCount}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -87,7 +87,7 @@ export default function AdminContent() {
               ))}
               {content?.items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No content found</TableCell>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Aucun contenu trouvé</TableCell>
                 </TableRow>
               )}
             </TableBody>

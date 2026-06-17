@@ -10,7 +10,6 @@ export default function Watch() {
   const [, setLocation] = useLocation();
   const contentId = parseInt(id || "0", 10);
   
-  // Extract episodeId from query params if available
   const searchParams = new URLSearchParams(window.location.search);
   const episodeIdParam = searchParams.get("episodeId");
   const episodeId = episodeIdParam ? parseInt(episodeIdParam, 10) : undefined;
@@ -24,7 +23,6 @@ export default function Watch() {
   });
 
   const seasonId = content?.seasons?.[0]?.id || 0;
-  // Get episode details if this is a series
   const { data: episodes } = useListEpisodes(seasonId, {
     query: { enabled: content?.contentType === "series" && !!content?.seasons?.[0]?.id, queryKey: getListEpisodesQueryKey(seasonId) }
   });
@@ -44,17 +42,14 @@ export default function Watch() {
 
   const episode = episodeId ? episodes?.find(e => e.id === episodeId) : undefined;
   const videoUrl = content?.contentType === "series" ? episode?.videoUrl : content?.videoUrl;
-  const title = content?.contentType === "series" ? `${content?.title} - ${episode?.title}` : content?.title;
+  const title = content?.contentType === "series" ? `${content?.title} — ${episode?.title}` : content?.title;
 
-  // Initial seek
   useEffect(() => {
     if (videoRef.current && watchProgress && watchProgress.progressSeconds > 0) {
-      // Only seek if we're not too close to the end (e.g. within last 30 seconds)
       videoRef.current.currentTime = watchProgress.progressSeconds;
     }
   }, [watchProgress]);
 
-  // Progress saving
   useEffect(() => {
     const saveInterval = setInterval(() => {
       if (isPlaying && videoRef.current) {
@@ -67,12 +62,11 @@ export default function Watch() {
           }
         });
       }
-    }, 10000); // Save every 10 seconds
+    }, 10000);
 
     return () => clearInterval(saveInterval);
   }, [isPlaying, contentId, episodeId, updateProgress]);
 
-  // Activity tracking for controls
   const handleMouseMove = () => {
     setShowControls(true);
     if (controlsTimeoutRef.current) {
@@ -179,15 +173,15 @@ export default function Watch() {
           autoPlay
         />
       ) : (
-        <div className="text-white text-xl">Video not available</div>
+        <div className="text-white text-xl">Vidéo non disponible</div>
       )}
 
-      {/* Controls Overlay */}
+      {/* Superposition des contrôles */}
       <div 
         className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 transition-opacity duration-300 flex flex-col justify-between ${showControls ? 'opacity-100' : 'opacity-0 cursor-none'}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* En-tête */}
         <div className="p-6 flex items-center gap-4">
           <Button 
             variant="ghost" 
@@ -200,7 +194,6 @@ export default function Watch() {
           <h1 className="text-xl font-bold text-white drop-shadow-md">{title}</h1>
         </div>
 
-        {/* Play center button (optional, depending on design preference) */}
         {!isPlaying && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="bg-black/40 rounded-full p-4 backdrop-blur-sm border border-white/10">
@@ -209,7 +202,7 @@ export default function Watch() {
           </div>
         )}
 
-        {/* Bottom Controls */}
+        {/* Contrôles bas */}
         <div className="p-6 space-y-4">
           <div className="flex items-center gap-4">
             <span className="text-white text-sm font-medium w-12 text-right">{formatTime(currentTime)}</span>

@@ -12,7 +12,7 @@ export default function Favorites() {
       
       <main className="flex-1 container px-4 md:px-6 py-12">
         <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-3xl font-bold text-white">My List</h1>
+          <h1 className="text-3xl font-bold text-white">Ma liste</h1>
         </div>
 
         {isLoading ? (
@@ -38,7 +38,9 @@ export default function Favorites() {
                     <h3 className="text-white font-bold text-sm truncate">{item.title}</h3>
                     <div className="flex items-center text-xs text-gray-300 gap-2 mt-1">
                       <span>{item.releaseYear}</span>
-                      <span className="capitalize border border-white/20 px-1.5 rounded">{item.contentType}</span>
+                      <span className="capitalize border border-white/20 px-1.5 rounded">
+                        {item.contentType === 'movie' ? 'Film' : 'Série'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -48,9 +50,9 @@ export default function Favorites() {
         ) : (
           <div className="text-center py-32 text-muted-foreground bg-secondary/20 rounded-xl border border-white/5">
             <Heart className="h-16 w-16 mx-auto mb-4 opacity-20" />
-            <p className="text-2xl font-bold text-white mb-2">Your list is empty</p>
+            <p className="text-2xl font-bold text-white mb-2">Votre liste est vide</p>
             <p className="max-w-md mx-auto">
-              Add shows and movies that you want to watch later by clicking the "My List" button on their details page.
+              Ajoutez des films et séries à regarder plus tard en cliquant sur « Ma liste » sur leur page de détail.
             </p>
           </div>
         )}

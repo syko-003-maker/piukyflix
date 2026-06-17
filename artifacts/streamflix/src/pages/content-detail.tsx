@@ -13,11 +13,12 @@ import {
 } from "@workspace/api-client-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
-import { Play, Plus, Check, Star, MessageSquare } from "lucide-react";
+import { Play, Plus, Check, Star } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ContentDetail() {
@@ -41,7 +42,6 @@ export default function ContentDetail() {
   const [commentText, setCommentText] = useState("");
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
 
-  // Default to first season if series
   if (content?.contentType === "series" && selectedSeason === null && content.seasons?.length > 0) {
     setSelectedSeason(content.seasons[0].id);
   }
@@ -86,7 +86,7 @@ export default function ContentDetail() {
   }
 
   if (!content) {
-    return <div className="min-h-screen bg-background text-white flex items-center justify-center">Content not found</div>;
+    return <div className="min-h-screen bg-background text-white flex items-center justify-center">Contenu introuvable</div>;
   }
 
   return (
@@ -94,7 +94,7 @@ export default function ContentDetail() {
       <Navbar />
       
       <main className="flex-1 pb-20">
-        {/* Hero Backdrop */}
+        {/* Bannière */}
         <div className="relative w-full h-[60vh] min-h-[400px]">
           <div className="absolute inset-0 bg-background">
             {content.backdropUrl && (
@@ -123,13 +123,13 @@ export default function ContentDetail() {
                 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-300 font-medium">
                   {content.releaseYear && <span>{content.releaseYear}</span>}
                   {content.durationMinutes && content.contentType === "movie" && (
-                    <span>{Math.floor(content.durationMinutes / 60)}h {content.durationMinutes % 60}m</span>
+                    <span>{Math.floor(content.durationMinutes / 60)}h {content.durationMinutes % 60}min</span>
                   )}
-                  {content.contentType === "series" && <span>{content.seasons?.length || 0} Seasons</span>}
+                  {content.contentType === "series" && <span>{content.seasons?.length || 0} saison{(content.seasons?.length || 0) > 1 ? 's' : ''}</span>}
                   {content.genre && <span className="border border-white/20 px-2 py-0.5 rounded text-xs">{content.genre}</span>}
                   <div className="flex items-center text-yellow-500">
                     <Star className="h-4 w-4 fill-current mr-1" />
-                    <span>{content.averageRating ? content.averageRating.toFixed(1) : "Unrated"}</span>
+                    <span>{content.averageRating ? content.averageRating.toFixed(1) : "Non noté"}</span>
                   </div>
                 </div>
                 
@@ -141,7 +141,7 @@ export default function ContentDetail() {
                   <Link href={content.contentType === 'movie' ? `/watch/${content.id}` : `/watch/${content.id}?episodeId=${episodes?.[0]?.id || ''}`}>
                     <Button size="lg" className="bg-white text-black hover:bg-white/90 font-bold px-8">
                       <Play className="mr-2 h-5 w-5 fill-current" />
-                      Play
+                      Lire
                     </Button>
                   </Link>
                   <Button 
@@ -151,9 +151,9 @@ export default function ContentDetail() {
                     onClick={toggleFavorite}
                   >
                     {content.isFavorite ? (
-                      <><Check className="mr-2 h-5 w-5" /> My List</>
+                      <><Check className="mr-2 h-5 w-5" /> Ma liste</>
                     ) : (
-                      <><Plus className="mr-2 h-5 w-5" /> My List</>
+                      <><Plus className="mr-2 h-5 w-5" /> Ma liste</>
                     )}
                   </Button>
                 </div>
@@ -162,20 +162,20 @@ export default function ContentDetail() {
           </div>
         </div>
 
-        {/* Content Details / Episodes */}
+        {/* Détails / Épisodes */}
         <div className="container px-4 md:px-6 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-12">
             {content.contentType === "series" && content.seasons?.length > 0 && (
               <section className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-white">Episodes</h2>
+                  <h2 className="text-2xl font-bold text-white">Épisodes</h2>
                   <select 
                     className="bg-secondary border border-border rounded-md px-3 py-1.5 text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-primary"
                     value={selectedSeason || ""}
                     onChange={(e) => setSelectedSeason(Number(e.target.value))}
                   >
                     {content.seasons.map(s => (
-                      <option key={s.id} value={s.id}>Season {s.seasonNumber}</option>
+                      <option key={s.id} value={s.id}>Saison {s.seasonNumber}</option>
                     ))}
                   </select>
                 </div>
@@ -203,7 +203,7 @@ export default function ContentDetail() {
                         </div>
                         {ep.durationMinutes && (
                           <div className="text-sm font-medium text-muted-foreground hidden sm:block">
-                            {ep.durationMinutes}m
+                            {ep.durationMinutes} min
                           </div>
                         )}
                       </div>
@@ -211,17 +211,17 @@ export default function ContentDetail() {
                   ))}
                   {episodes?.length === 0 && (
                     <div className="text-muted-foreground text-center py-8 bg-secondary/20 rounded-lg">
-                      No episodes found for this season.
+                      Aucun épisode trouvé pour cette saison.
                     </div>
                   )}
                 </div>
               </section>
             )}
 
-            {/* Comments Section */}
+            {/* Section Commentaires */}
             <section className="space-y-6">
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold text-white">Comments</h2>
+                <h2 className="text-2xl font-bold text-white">Commentaires</h2>
                 <span className="bg-secondary text-xs font-bold px-2 py-0.5 rounded-full">{comments?.length || 0}</span>
               </div>
               
@@ -234,12 +234,12 @@ export default function ContentDetail() {
                   <Textarea 
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Add a comment..."
+                    placeholder="Ajouter un commentaire…"
                     className="resize-none bg-secondary/50 border-border focus:bg-secondary focus:ring-primary h-20"
                   />
                   <div className="flex justify-end">
                     <Button type="submit" disabled={!commentText.trim() || addComment.isPending}>
-                      Post Comment
+                      Publier
                     </Button>
                   </div>
                 </div>
@@ -254,9 +254,9 @@ export default function ContentDetail() {
                     </Avatar>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-baseline gap-2">
-                        <span className="font-bold text-white text-sm">{comment.username || "User"}</span>
+                        <span className="font-bold text-white text-sm">{comment.username || "Utilisateur"}</span>
                         <span className="text-xs text-muted-foreground">
-                          {format(new Date(comment.createdAt), "MMM d, yyyy")}
+                          {format(new Date(comment.createdAt), "d MMM yyyy", { locale: fr })}
                         </span>
                       </div>
                       <p className="text-gray-300 text-sm leading-relaxed">{comment.text}</p>
@@ -268,31 +268,30 @@ export default function ContentDetail() {
           </div>
 
           <div className="space-y-8">
-            {/* Sidebar info could go here */}
             <div className="bg-secondary/30 border border-white/5 rounded-lg p-6 space-y-4">
-              <h3 className="font-bold text-white text-lg border-b border-border pb-2">About</h3>
+              <h3 className="font-bold text-white text-lg border-b border-border pb-2">À propos</h3>
               <dl className="space-y-3 text-sm">
                 <div>
-                  <dt className="text-muted-foreground font-medium">Category</dt>
-                  <dd className="text-white">{content.categoryName || "Uncategorized"}</dd>
+                  <dt className="text-muted-foreground font-medium">Catégorie</dt>
+                  <dd className="text-white">{content.categoryName || "Non classé"}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground font-medium">Genre</dt>
-                  <dd className="text-white">{content.genre || "N/A"}</dd>
+                  <dd className="text-white">{content.genre || "—"}</dd>
                 </div>
                 {content.contentType === "movie" && (
                   <div>
-                    <dt className="text-muted-foreground font-medium">Runtime</dt>
-                    <dd className="text-white">{content.durationMinutes ? `${content.durationMinutes} minutes` : "N/A"}</dd>
+                    <dt className="text-muted-foreground font-medium">Durée</dt>
+                    <dd className="text-white">{content.durationMinutes ? `${content.durationMinutes} minutes` : "—"}</dd>
                   </div>
                 )}
                 <div>
-                  <dt className="text-muted-foreground font-medium">Release Year</dt>
-                  <dd className="text-white">{content.releaseYear || "N/A"}</dd>
+                  <dt className="text-muted-foreground font-medium">Année de sortie</dt>
+                  <dd className="text-white">{content.releaseYear || "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground font-medium">Views</dt>
-                  <dd className="text-white">{content.viewCount.toLocaleString()}</dd>
+                  <dt className="text-muted-foreground font-medium">Vues</dt>
+                  <dd className="text-white">{content.viewCount.toLocaleString("fr-FR")}</dd>
                 </div>
               </dl>
             </div>

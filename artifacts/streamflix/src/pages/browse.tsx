@@ -15,7 +15,7 @@ export default function Browse() {
       <Navbar />
       
       <main className="flex-1">
-        {/* Hero Section */}
+        {/* Section Hero */}
         {isLoadingFeatured || isLoadingContent ? (
           <div className="w-full h-[70vh] bg-secondary animate-pulse" />
         ) : heroItem ? (
@@ -45,13 +45,13 @@ export default function Browse() {
                   <Link href={`/watch/${heroItem.id}`}>
                     <Button size="lg" className="bg-white text-black hover:bg-white/80 font-bold px-8">
                       <Play className="mr-2 h-5 w-5 fill-current" />
-                      Play
+                      Lire
                     </Button>
                   </Link>
                   <Link href={`/content/${heroItem.id}`}>
                     <Button size="lg" variant="secondary" className="bg-secondary/80 text-white hover:bg-secondary font-bold px-8 backdrop-blur-sm">
                       <Info className="mr-2 h-5 w-5" />
-                      More Info
+                      Plus d'infos
                     </Button>
                   </Link>
                 </div>
@@ -60,11 +60,10 @@ export default function Browse() {
           </section>
         ) : null}
 
-        {/* Content Grids */}
+        {/* Grilles de contenu */}
         <div className="container px-4 md:px-6 py-8 space-y-12">
-          {/* Recent/Popular sections would go here */}
           <section>
-            <h2 className="text-2xl font-bold text-white mb-6">Trending Now</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">Tendances actuelles</h2>
             {isLoadingContent ? (
               <div className="flex gap-4 overflow-hidden">
                 {[1,2,3,4,5].map(i => (
@@ -87,7 +86,7 @@ export default function Browse() {
                         <h3 className="text-white font-bold text-sm truncate">{item.title}</h3>
                         <div className="flex items-center text-xs text-gray-300 gap-2 mt-1">
                           <span>{item.releaseYear}</span>
-                          {item.durationMinutes && <span>{item.durationMinutes}m</span>}
+                          {item.durationMinutes && <span>{item.durationMinutes} min</span>}
                         </div>
                       </div>
                     </div>

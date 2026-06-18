@@ -22,6 +22,7 @@ import AdminDashboard from "@/pages/admin/index";
 import AdminContent from "@/pages/admin/content";
 import AdminCategories from "@/pages/admin/categories";
 import AdminUsers from "@/pages/admin/users";
+import AdminInvite from "@/pages/admin/invite";
 
 const queryClient = new QueryClient();
 
@@ -196,6 +197,9 @@ function ClerkProviderWithRoutes() {
           </Route>
           <Route path="/admin/users">
             <AdminRoute component={AdminUsers} />
+          </Route>
+          <Route path="/admin/invite">
+            <AdminRoute component={AdminInvite} />
           </Route>
 
           <Route path="/sign-in/*?" component={SignInPage} />

@@ -3,6 +3,7 @@ import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { usersTable, contentTable, categoriesTable, watchHistoryTable, commentsTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
+import { Resend } from "resend";
 
 const router = Router();
 
@@ -85,6 +86,57 @@ router.delete("/admin/users/:userId", async (req, res) => {
   if (!await requireAdmin(req, res)) return;
   await db.delete(usersTable).where(eq(usersTable.id, req.params.userId));
   res.status(204).send();
+});
+
+router.post("/admin/invite", async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  const { email, role = "user", message } = req.body;
+  if (!email) { res.status(400).json({ error: "email requis" }); return; }
+
+  const appUrl = (process.env.REPLIT_DOMAINS || "").split(",")[0]?.trim();
+  const siteUrl = appUrl ? `https://${appUrl}` : "https://piukyflix.replit.app";
+
+  const roleLabel: Record<string, string> = {
+    admin: "Administrateur",
+    moderator: "Modérateur",
+    user: "Utilisateur",
+  };
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const { error } = await resend.emails.send({
+    from: "PiukyFlix <onboarding@resend.dev>",
+    to: email,
+    subject: "Vous êtes invité(e) à rejoindre PiukyFlix 🎬",
+    html: `
+      <div style="font-family:Inter,sans-serif;background:#0d0f1a;color:#fff;padding:40px;border-radius:12px;max-width:520px;margin:0 auto">
+        <h1 style="font-size:28px;font-weight:900;margin:0 0 4px">Piuky<span style="color:#e50914">Flix</span></h1>
+        <p style="color:#9ca3af;margin:0 0 32px;font-size:13px">La plateforme de streaming</p>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 12px">Vous êtes invité(e) !</h2>
+        <p style="color:#d1d5db;line-height:1.6;margin:0 0 8px">
+          Vous avez été invité(e) à rejoindre <strong>PiukyFlix</strong> avec le rôle&nbsp;:
+          <span style="background:#e50914;color:#fff;padding:2px 10px;border-radius:4px;font-size:13px;font-weight:700">${roleLabel[role] || role}</span>
+        </p>
+        ${message ? `<p style="color:#d1d5db;line-height:1.6;background:#1e2235;border-left:3px solid #e50914;padding:12px 16px;border-radius:4px;margin:16px 0">${message}</p>` : ""}
+        <a href="${siteUrl}/sign-up"
+           style="display:inline-block;margin-top:24px;background:#e50914;color:#fff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none">
+          Créer mon compte
+        </a>
+        <p style="color:#6b7280;font-size:12px;margin-top:32px">
+          Si vous ne souhaitez pas rejoindre PiukyFlix, ignorez cet e-mail.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    req.log.error({ err: error }, "Resend error");
+    res.status(500).json({ error: "Échec de l'envoi de l'e-mail" });
+    return;
+  }
+
+  res.json({ success: true });
 });
 
 export default router;

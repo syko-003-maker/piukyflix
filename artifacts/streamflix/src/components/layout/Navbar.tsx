@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Show, useClerk, useUser } from "@clerk/react";
-import { Search, LogOut, MonitorPlay } from "lucide-react";
+import { Search, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,12 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useGetMe } from "@workspace/api-client-react";
 
 export function Navbar() {
   const [, setLocation] = useLocation();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const { data: me } = useGetMe();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const isAdmin = me?.role === "admin" || me?.role === "moderator";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -26,7 +29,7 @@ export function Navbar() {
             <img src={`${basePath}/logo.svg`} alt="PiukyFlix" className="h-8 w-auto" />
           </Link>
           <Show when="signed-in">
-            <nav className="hidden md:flex gap-6">
+            <nav className="hidden md:flex gap-6 items-center">
               <Link href="/browse" className="text-sm font-medium transition-colors hover:text-primary">
                 Catalogue
               </Link>
@@ -39,6 +42,14 @@ export function Navbar() {
               <Link href="/history" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
                 Historique
               </Link>
+              {isAdmin && (
+                <Link href="/admin">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-primary border border-primary/40 bg-primary/10 hover:bg-primary/20 px-3 py-1 rounded-md transition-colors">
+                    <LayoutDashboard className="h-3.5 w-3.5" />
+                    Admin
+                  </span>
+                </Link>
+              )}
             </nav>
           </Show>
         </div>
@@ -69,11 +80,15 @@ export function Navbar() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setLocation("/admin")}>
-                  <MonitorPlay className="mr-2 h-4 w-4" />
-                  <span>Tableau de bord admin</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {isAdmin && (
+                  <>
+                    <DropdownMenuItem onClick={() => setLocation("/admin")}>
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <span>Tableau de bord admin</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={() => signOut({ redirectUrl: basePath || "/" })}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Se déconnecter</span>

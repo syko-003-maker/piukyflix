@@ -7,3 +7,4 @@ export * from "./favorites";
 export * from "./watchHistory";
 export * from "./ratings";
 export * from "./comments";
+export * from "./invitations";

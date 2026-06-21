@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
-import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -26,10 +25,7 @@ import AdminInvite from "@/pages/admin/invite";
 
 const queryClient = new QueryClient();
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -149,12 +145,13 @@ function HomeRedirect() {
   );
 }
 
-function AdminRoute({ component: Component }: { component: any }) {
+function AdminRoute({ component: Component, adminOnly }: { component: any; adminOnly?: boolean }) {
   const { data: user, isLoading } = useGetMe();
 
   if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center animate-pulse" />;
-  
-  if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
+
+  const allowed = !!user && (user.role === 'admin' || (!adminOnly && user.role === 'moderator'));
+  if (!allowed) {
     return <Redirect to="/browse" />;
   }
 
@@ -196,10 +193,10 @@ function ClerkProviderWithRoutes() {
             <AdminRoute component={AdminCategories} />
           </Route>
           <Route path="/admin/users">
-            <AdminRoute component={AdminUsers} />
+            <AdminRoute component={AdminUsers} adminOnly />
           </Route>
           <Route path="/admin/invite">
-            <AdminRoute component={AdminInvite} />
+            <AdminRoute component={AdminInvite} adminOnly />
           </Route>
 
           <Route path="/sign-in/*?" component={SignInPage} />

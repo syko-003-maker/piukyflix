@@ -7,7 +7,12 @@ import { randomUUID } from "crypto";
 
 const router = Router();
 
-const ADMIN_EMAILS = ["seanloulou33@gmail.com"];
+// Comma-separated allowlist of emails auto-promoted to admin on sign-in.
+// Configure via the ADMIN_EMAILS env var; falls back to the original owner email.
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "seanloulou33@gmail.com")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 router.get("/auth/me", async (req, res) => {
   const { userId } = getAuth(req);
@@ -41,10 +46,13 @@ router.post("/auth/sync", async (req, res) => {
   const email = (sessionClaims?.email as string) ?? "";
   const username = (sessionClaims?.username as string) ?? null;
   const avatarUrl = (sessionClaims?.image_url as string) ?? null;
+  // Treat the email as verified unless the claim is explicitly false. For full
+  // assurance, expose `email_verified` in the Clerk JWT template.
+  const emailVerified = sessionClaims?.email_verified !== false;
 
   const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId)).limit(1);
 
-  const isAdmin = ADMIN_EMAILS.includes(email);
+  const isAdmin = emailVerified && ADMIN_EMAILS.includes(email.toLowerCase());
 
   if (existing[0]) {
     const updated = await db.update(usersTable)

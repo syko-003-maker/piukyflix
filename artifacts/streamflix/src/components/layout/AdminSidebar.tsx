@@ -1,16 +1,24 @@
 import { Link, useLocation } from "wouter";
 import { LayoutDashboard, Film, FolderTree, Users, ArrowLeft, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGetMe } from "@workspace/api-client-react";
 
 export function AdminSidebar() {
   const [location] = useLocation();
+  const { data: user } = useGetMe();
+  const isAdmin = user?.role === "admin";
 
   const navItems = [
     { href: "/admin", label: "Vue d'ensemble", icon: LayoutDashboard },
     { href: "/admin/content", label: "Contenu", icon: Film },
     { href: "/admin/categories", label: "Catégories", icon: FolderTree },
-    { href: "/admin/users", label: "Utilisateurs", icon: Users },
-    { href: "/admin/invite", label: "Invitations", icon: Mail },
+    // User management is admin-only (moderators manage content only).
+    ...(isAdmin
+      ? [
+          { href: "/admin/users", label: "Utilisateurs", icon: Users },
+          { href: "/admin/invite", label: "Invitations", icon: Mail },
+        ]
+      : []),
   ];
 
   return (

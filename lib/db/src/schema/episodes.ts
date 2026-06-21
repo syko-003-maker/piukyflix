@@ -1,10 +1,11 @@
 import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { seasonsTable } from "./seasons";
 
 export const episodesTable = pgTable("episodes", {
   id: serial("id").primaryKey(),
-  seasonId: integer("season_id").notNull(),
+  seasonId: integer("season_id").notNull().references(() => seasonsTable.id, { onDelete: "cascade" }),
   episodeNumber: integer("episode_number").notNull(),
   title: text("title").notNull(),
   description: text("description"),

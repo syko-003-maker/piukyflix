@@ -7,18 +7,11 @@ import {
   watchHistoryTable, ratingsTable
 } from "@workspace/db";
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
+import { CreateContentBody, UpdateContentBody } from "@workspace/api-zod";
+import { requireStaff } from "../middlewares/auth";
+import { toInt } from "../lib/utils";
 
 const router = Router();
-
-async function requireAdmin(req: any, res: any): Promise<boolean> {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return false; }
-  const user = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId)).limit(1);
-  if (!user[0] || (user[0].role !== "admin" && user[0].role !== "moderator")) {
-    res.status(403).json({ error: "Forbidden" }); return false;
-  }
-  return true;
-}
 
 async function formatContent(c: any, categoryName?: string | null) {
   return {
@@ -52,16 +45,17 @@ async function getContentList(items: any[]) {
 }
 
 router.get("/content", async (req, res) => {
-  const { categoryId, genre, type, limit = "20", offset = "0" } = req.query as any;
-  let query = db.select().from(contentTable);
+  const { categoryId, genre, type } = req.query as any;
+  const limit = toInt(req.query.limit, 20, 1, 100);
+  const offset = toInt(req.query.offset, 0, 0, 1_000_000);
   const conditions = [];
   if (categoryId) conditions.push(eq(contentTable.categoryId, Number(categoryId)));
   if (genre) conditions.push(eq(contentTable.genre, genre));
   if (type) conditions.push(eq(contentTable.contentType, type));
 
   const items = conditions.length > 0
-    ? await db.select().from(contentTable).where(and(...conditions)).orderBy(desc(contentTable.createdAt)).limit(Number(limit)).offset(Number(offset))
-    : await db.select().from(contentTable).orderBy(desc(contentTable.createdAt)).limit(Number(limit)).offset(Number(offset));
+    ? await db.select().from(contentTable).where(and(...conditions)).orderBy(desc(contentTable.createdAt)).limit(limit).offset(offset)
+    : await db.select().from(contentTable).orderBy(desc(contentTable.createdAt)).limit(limit).offset(offset);
 
   const total = await db.select({ count: sql<number>`count(*)` }).from(contentTable).where(conditions.length > 0 ? and(...conditions) : undefined);
   const formatted = await getContentList(items);
@@ -69,9 +63,10 @@ router.get("/content", async (req, res) => {
 });
 
 router.post("/content", async (req, res) => {
-  if (!await requireAdmin(req, res)) return;
-  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured } = req.body;
-  if (!title || !contentType) { res.status(400).json({ error: "title and contentType required" }); return; }
+  if (!await requireStaff(req, res)) return;
+  const parsed = CreateContentBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
+  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured } = parsed.data;
   const item = await db.insert(contentTable).values({
     title, description, posterUrl, backdropUrl, videoUrl,
     categoryId: categoryId ? Number(categoryId) : null,
@@ -90,15 +85,15 @@ router.get("/content/featured", async (req, res) => {
 });
 
 router.get("/content/latest", async (req, res) => {
-  const { limit = "12" } = req.query as any;
-  const items = await db.select().from(contentTable).orderBy(desc(contentTable.createdAt)).limit(Number(limit));
+  const limit = toInt(req.query.limit, 12, 1, 100);
+  const items = await db.select().from(contentTable).orderBy(desc(contentTable.createdAt)).limit(limit);
   const formatted = await getContentList(items);
   res.json(formatted);
 });
 
 router.get("/content/popular", async (req, res) => {
-  const { limit = "12" } = req.query as any;
-  const items = await db.select().from(contentTable).orderBy(desc(contentTable.viewCount), desc(contentTable.averageRating)).limit(Number(limit));
+  const limit = toInt(req.query.limit, 12, 1, 100);
+  const items = await db.select().from(contentTable).orderBy(desc(contentTable.viewCount), desc(contentTable.averageRating)).limit(limit);
   const formatted = await getContentList(items);
   res.json(formatted);
 });
@@ -154,8 +149,10 @@ router.get("/content/:id", async (req, res) => {
 });
 
 router.patch("/content/:id", async (req, res) => {
-  if (!await requireAdmin(req, res)) return;
-  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured } = req.body;
+  if (!await requireStaff(req, res)) return;
+  const parsed = UpdateContentBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
+  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured } = parsed.data;
   const item = await db.update(contentTable).set({
     ...(title && { title }),
     ...(description !== undefined && { description }),
@@ -174,7 +171,7 @@ router.patch("/content/:id", async (req, res) => {
 });
 
 router.delete("/content/:id", async (req, res) => {
-  if (!await requireAdmin(req, res)) return;
+  if (!await requireStaff(req, res)) return;
   await db.delete(contentTable).where(eq(contentTable.id, Number(req.params.id)));
   res.status(204).send();
 });

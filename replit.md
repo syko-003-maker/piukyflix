@@ -10,7 +10,14 @@ A full-stack streaming platform similar to Netflix/Disney+. Users can browse mov
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/scripts run seed` — populate the catalog with demo content (idempotent: skips if content already exists)
+- Required env:
+  - `DATABASE_URL` — Postgres connection string
+  - `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` — Clerk auth
+  - `RESEND_API_KEY` — transactional email (invitations)
+  - `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR` — object storage buckets
+  - `REPLIT_DOMAINS` — comma-separated public hostnames; drives the CORS allowlist
+  - `ADMIN_EMAILS` — optional, comma-separated emails auto-promoted to admin on sign-in
 
 ## Stack
 
@@ -39,6 +46,9 @@ A full-stack streaming platform similar to Netflix/Disney+. Users can browse mov
 - Contract-first API: OpenAPI spec drives all codegen (React Query hooks + Zod schemas)
 - Clerk proxy middleware on the API server routes Clerk auth requests through `/clerk`
 - No FK from content to categories at DB level (avoids circular issues); join is done in app code using `inArray()`
+- All other relations DO have FKs with cascade deletes (seasons/episodes/favorites/ratings/comments/watch_history → cascade on parent delete; watch_history.episodeId and invitations.invitedById → set null). Run `pnpm --filter @workspace/db run push` after pulling these schema changes.
+- Write routes validate request bodies with the generated Zod schemas from `@workspace/api-zod` (e.g. `CreateContentBody.safeParse(req.body)`); unknown keys are stripped, so no mass-assignment
+- API requests are rate-limited in-memory (per process): 300/min global, 30/min on `/api/auth`, 10/min on `/api/admin/invite`
 - `averageRating` is stored as `numeric` in DB and recalculated on each rating submission
 - Object storage uses GCS-backed Replit Object Storage; presigned URLs for direct upload
 - All routes use `getAuth(req)` from `@clerk/express` for auth; user sync happens on sign-in via `/api/auth/sync`

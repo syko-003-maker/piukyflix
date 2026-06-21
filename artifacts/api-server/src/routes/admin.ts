@@ -1,24 +1,18 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { usersTable, contentTable, categoriesTable, watchHistoryTable, commentsTable, invitationsTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { Resend } from "resend";
+import { UpdateUserRoleBody } from "@workspace/api-zod";
+import { requireStaff, requireAdmin } from "../middlewares/auth";
+import { escapeHtml } from "../lib/utils";
 
 const router = Router();
 
-async function requireAdmin(req: any, res: any) {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return null; }
-  const user = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId)).limit(1);
-  if (!user[0] || (user[0].role !== "admin" && user[0].role !== "moderator")) {
-    res.status(403).json({ error: "Forbidden" }); return null;
-  }
-  return user[0];
-}
+const VALID_ROLES = ["user", "admin", "moderator"];
 
 router.get("/admin/stats", async (req, res) => {
-  if (!await requireAdmin(req, res)) return;
+  if (!await requireStaff(req, res)) return;
 
   const [totalUsers, totalContent, movies, series, totalCategories, totalWatchEvents, totalComments, topContent, recentActivity] = await Promise.all([
     db.select({ count: sql<number>`count(*)` }).from(usersTable),
@@ -74,8 +68,9 @@ router.get("/admin/users", async (req, res) => {
 
 router.patch("/admin/users/:userId/role", async (req, res) => {
   if (!await requireAdmin(req, res)) return;
-  const { role } = req.body;
-  if (!["user", "admin", "moderator"].includes(role)) { res.status(400).json({ error: "Invalid role" }); return; }
+  const parsed = UpdateUserRoleBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Rôle invalide", details: parsed.error.issues }); return; }
+  const { role } = parsed.data;
   const updated = await db.update(usersTable).set({ role }).where(eq(usersTable.id, req.params.userId)).returning();
   if (!updated[0]) { res.status(404).json({ error: "Not found" }); return; }
   const u = updated[0];
@@ -97,9 +92,9 @@ function buildInviteHtml(email: string, role: string, message: string | undefine
       <h2 style="font-size:22px;font-weight:700;margin:0 0 12px">Vous êtes invité(e) !</h2>
       <p style="color:#d1d5db;line-height:1.6;margin:0 0 8px">
         Vous avez été invité(e) à rejoindre <strong>PiukyFlix</strong> avec le rôle&nbsp;:
-        <span style="background:#e50914;color:#fff;padding:2px 10px;border-radius:4px;font-size:13px;font-weight:700">${roleLabel[role] || role}</span>
+        <span style="background:#e50914;color:#fff;padding:2px 10px;border-radius:4px;font-size:13px;font-weight:700">${roleLabel[role] || escapeHtml(role)}</span>
       </p>
-      ${message ? `<p style="color:#d1d5db;line-height:1.6;background:#1e2235;border-left:3px solid #e50914;padding:12px 16px;border-radius:4px;margin:16px 0">${message}</p>` : ""}
+      ${message ? `<p style="color:#d1d5db;line-height:1.6;background:#1e2235;border-left:3px solid #e50914;padding:12px 16px;border-radius:4px;margin:16px 0">${escapeHtml(message)}</p>` : ""}
       <a href="${siteUrl}/sign-up"
          style="display:inline-block;margin-top:24px;background:#e50914;color:#fff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none">
         Créer mon compte
@@ -116,7 +111,11 @@ router.post("/admin/invite", async (req, res) => {
   if (!admin) return;
 
   const { email, role = "user", message } = req.body;
-  if (!email) { res.status(400).json({ error: "email requis" }); return; }
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).json({ error: "email invalide" }); return;
+  }
+  if (!VALID_ROLES.includes(role)) { res.status(400).json({ error: "rôle invalide" }); return; }
+  if (message != null && typeof message !== "string") { res.status(400).json({ error: "message invalide" }); return; }
 
   const appUrl = (process.env.REPLIT_DOMAINS || "").split(",")[0]?.trim();
   const siteUrl = appUrl ? `https://${appUrl}` : "https://piukyflix.replit.app";

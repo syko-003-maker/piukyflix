@@ -1,21 +1,14 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import {
   usersTable, contentTable, favoritesTable,
   watchHistoryTable, ratingsTable, commentsTable
 } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { UpdateWatchProgressBody, RateContentBody, AddCommentBody } from "@workspace/api-zod";
+import { getDbUser } from "../middlewares/auth";
 
 const router = Router();
-
-async function getDbUser(req: any, res: any) {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return null; }
-  const user = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId)).limit(1);
-  if (!user[0]) { res.status(401).json({ error: "User not found" }); return null; }
-  return user[0];
-}
 
 async function formatContentItem(c: any) {
   return {
@@ -83,7 +76,9 @@ router.post("/watch-history/:contentId", async (req, res) => {
   const user = await getDbUser(req, res);
   if (!user) return;
   const contentId = Number(req.params.contentId);
-  const { progressSeconds, episodeId, completed } = req.body;
+  const parsed = UpdateWatchProgressBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
+  const { progressSeconds, episodeId, completed } = parsed.data;
 
   const entry = await db.insert(watchHistoryTable).values({
     userId: user.id, contentId, episodeId: episodeId ? Number(episodeId) : null,
@@ -117,8 +112,10 @@ router.post("/ratings/:contentId", async (req, res) => {
   const user = await getDbUser(req, res);
   if (!user) return;
   const contentId = Number(req.params.contentId);
-  const score = Number(req.body.score);
-  if (score < 1 || score > 5) { res.status(400).json({ error: "Score must be 1-5" }); return; }
+  const parsed = RateContentBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
+  const score = parsed.data.score;
+  if (!Number.isInteger(score) || score < 1 || score > 5) { res.status(400).json({ error: "La note doit être un entier entre 1 et 5" }); return; }
 
   const rating = await db.insert(ratingsTable).values({ userId: user.id, contentId, score })
     .onConflictDoUpdate({
@@ -161,8 +158,10 @@ router.get("/comments/:contentId", async (req, res) => {
 router.post("/comments/:contentId", async (req, res) => {
   const user = await getDbUser(req, res);
   if (!user) return;
-  const { text } = req.body;
-  if (!text) { res.status(400).json({ error: "text required" }); return; }
+  const parsed = AddCommentBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
+  const text = parsed.data.text.trim();
+  if (!text) { res.status(400).json({ error: "Le commentaire ne peut pas être vide" }); return; }
   const comment = await db.insert(commentsTable).values({ userId: user.id, contentId: Number(req.params.contentId), text }).returning();
   res.status(201).json({ id: comment[0].id, userId: comment[0].userId, contentId: comment[0].contentId, text: comment[0].text, username: user.username ?? user.email, avatarUrl: user.avatarUrl, createdAt: comment[0].createdAt.toISOString() });
 });

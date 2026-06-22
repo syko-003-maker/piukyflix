@@ -114,14 +114,18 @@ function ClerkQueryClientCacheInvalidator() {
   useEffect(() => {
     const unsubscribe = addListener(({ user }) => {
       const userId = user?.id ?? null;
-      if (
-        prevUserIdRef.current !== undefined &&
-        prevUserIdRef.current !== userId
-      ) {
+      const isInitial = prevUserIdRef.current === undefined;
+      const changed = !isInitial && prevUserIdRef.current !== userId;
+
+      if (changed) {
         queryClient.clear();
-        if (userId) {
-          syncUser.mutate();
-        }
+      }
+      // Sync on sign-in change AND on initial load when already signed in, so
+      // role/profile updates (e.g. admin promotion) propagate without a sign-out/in.
+      if (userId && (changed || isInitial)) {
+        syncUser.mutate(undefined, {
+          onSuccess: () => queryClient.invalidateQueries(),
+        });
       }
       prevUserIdRef.current = userId;
     });

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { usersTable, contentTable, categoriesTable, watchHistoryTable, commentsTable, invitationsTable } from "@workspace/db";
+import { usersTable, contentTable, categoriesTable, watchHistoryTable, commentsTable, invitationsTable, ratingsTable, favoritesTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { Resend } from "resend";
 import { UpdateUserRoleBody } from "@workspace/api-zod";
@@ -30,6 +30,31 @@ router.get("/admin/stats", async (req, res) => {
       .limit(10),
   ]);
 
+  const now = new Date();
+  const since7d = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+  const since14d = new Date(now.getTime() - 14 * 24 * 3600 * 1000);
+
+  const [rolesAgg, completedAgg, active7dAgg, hoursAgg, signupsAgg, ratingsAgg, genreAgg, favAgg] = await Promise.all([
+    db.select({ role: usersTable.role, count: sql<number>`count(*)` }).from(usersTable).groupBy(usersTable.role),
+    db.select({ count: sql<number>`count(*)` }).from(watchHistoryTable).where(eq(watchHistoryTable.completed, true)),
+    db.select({ count: sql<number>`count(distinct ${watchHistoryTable.userId})` }).from(watchHistoryTable).where(sql`${watchHistoryTable.watchedAt} > ${since7d}`),
+    db.select({ total: sql<number>`coalesce(sum(${watchHistoryTable.progressSeconds}), 0)` }).from(watchHistoryTable),
+    db.select({ day: sql<string>`to_char(date_trunc('day', ${usersTable.createdAt}), 'YYYY-MM-DD')`, count: sql<number>`count(*)` })
+      .from(usersTable).where(sql`${usersTable.createdAt} > ${since14d}`)
+      .groupBy(sql`date_trunc('day', ${usersTable.createdAt})`).orderBy(sql`date_trunc('day', ${usersTable.createdAt})`),
+    db.select({ score: ratingsTable.score, count: sql<number>`count(*)` }).from(ratingsTable).groupBy(ratingsTable.score).orderBy(ratingsTable.score),
+    db.select({ genre: contentTable.genre, count: sql<number>`count(*)`, views: sql<number>`coalesce(sum(${contentTable.viewCount}), 0)` })
+      .from(contentTable).where(sql`${contentTable.genre} is not null`)
+      .groupBy(contentTable.genre).orderBy(desc(sql`coalesce(sum(${contentTable.viewCount}), 0)`)).limit(8),
+    db.select({ id: contentTable.id, title: contentTable.title, posterUrl: contentTable.posterUrl, favorites: sql<number>`count(${favoritesTable.id})` })
+      .from(contentTable).innerJoin(favoritesTable, eq(favoritesTable.contentId, contentTable.id))
+      .groupBy(contentTable.id).orderBy(desc(sql`count(${favoritesTable.id})`)).limit(5),
+  ]);
+
+  const totalWatch = Number(totalWatchEvents[0].count);
+  const completedWatch = Number(completedAgg[0].count);
+  const roleCount = (r: string) => Number(rolesAgg.find((x) => x.role === r)?.count ?? 0);
+
   res.json({
     totalUsers: Number(totalUsers[0].count),
     totalContent: Number(totalContent[0].count),
@@ -54,6 +79,14 @@ router.get("/admin/stats", async (req, res) => {
         averageRating: r.content.averageRating ? Number(r.content.averageRating) : null,
       }
     })),
+    usersByRole: { user: roleCount("user"), moderator: roleCount("moderator"), admin: roleCount("admin") },
+    completionRate: totalWatch > 0 ? Math.round((completedWatch / totalWatch) * 100) : 0,
+    activeUsers7d: Number(active7dAgg[0].count),
+    totalHoursWatched: Math.round(Number(hoursAgg[0].total) / 3600),
+    signupsByDay: signupsAgg.map((s) => ({ day: s.day, count: Number(s.count) })),
+    ratingsDistribution: ratingsAgg.map((r) => ({ score: Number(r.score), count: Number(r.count) })),
+    genrePerformance: genreAgg.map((g) => ({ genre: g.genre, count: Number(g.count), views: Number(g.views) })),
+    mostFavorited: favAgg.map((f) => ({ id: f.id, title: f.title, posterUrl: f.posterUrl, favorites: Number(f.favorites) })),
   });
 });
 

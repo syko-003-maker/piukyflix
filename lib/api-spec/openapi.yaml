@@ -957,6 +957,22 @@ components:
           type: ["number", "null"]
         viewCount:
           type: integer
+        maturityRating:
+          type: ["string", "null"]
+        cast:
+          type: ["string", "null"]
+        director:
+          type: ["string", "null"]
+        tagline:
+          type: ["string", "null"]
+        trailerUrl:
+          type: ["string", "null"]
+        originalLanguage:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        tmdbId:
+          type: ["integer", "null"]
         createdAt:
           type: string
       required:
@@ -1001,6 +1017,22 @@ components:
           type: ["number", "null"]
         viewCount:
           type: integer
+        maturityRating:
+          type: ["string", "null"]
+        cast:
+          type: ["string", "null"]
+        director:
+          type: ["string", "null"]
+        tagline:
+          type: ["string", "null"]
+        trailerUrl:
+          type: ["string", "null"]
+        originalLanguage:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        tmdbId:
+          type: ["integer", "null"]
         createdAt:
           type: string
         seasons:
@@ -1062,6 +1094,22 @@ components:
           enum: [movie, series]
         isFeatured:
           type: boolean
+        maturityRating:
+          type: string
+        cast:
+          type: string
+        director:
+          type: string
+        tagline:
+          type: string
+        trailerUrl:
+          type: string
+        originalLanguage:
+          type: string
+        country:
+          type: string
+        tmdbId:
+          type: integer
       required:
         - title
         - contentType
@@ -1092,6 +1140,22 @@ components:
           enum: [movie, series]
         isFeatured:
           type: boolean
+        maturityRating:
+          type: string
+        cast:
+          type: string
+        director:
+          type: string
+        tagline:
+          type: string
+        trailerUrl:
+          type: string
+        originalLanguage:
+          type: string
+        country:
+          type: string
+        tmdbId:
+          type: integer
 
     Season:
       type: object
@@ -1349,6 +1413,80 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/WatchHistoryEntry"
+        usersByRole:
+          type: object
+          properties:
+            user:
+              type: integer
+            moderator:
+              type: integer
+            admin:
+              type: integer
+          required:
+            - user
+            - moderator
+            - admin
+        completionRate:
+          type: integer
+        activeUsers7d:
+          type: integer
+        totalHoursWatched:
+          type: integer
+        signupsByDay:
+          type: array
+          items:
+            type: object
+            properties:
+              day:
+                type: string
+              count:
+                type: integer
+            required:
+              - day
+              - count
+        ratingsDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              score:
+                type: integer
+              count:
+                type: integer
+            required:
+              - score
+              - count
+        genrePerformance:
+          type: array
+          items:
+            type: object
+            properties:
+              genre:
+                type: ["string", "null"]
+              count:
+                type: integer
+              views:
+                type: integer
+            required:
+              - count
+              - views
+        mostFavorited:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              title:
+                type: string
+              posterUrl:
+                type: ["string", "null"]
+              favorites:
+                type: integer
+            required:
+              - id
+              - title
+              - favorites
       required:
         - totalUsers
         - totalContent
@@ -1359,6 +1497,14 @@ components:
         - totalComments
         - topContent
         - recentActivity
+        - usersByRole
+        - completionRate
+        - activeUsers7d
+        - totalHoursWatched
+        - signupsByDay
+        - ratingsDistribution
+        - genrePerformance
+        - mostFavorited
 
     UploadUrlRequest:
       type: object

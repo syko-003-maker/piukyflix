@@ -66,7 +66,7 @@ router.get("/tmdb/details", async (req: Request, res: Response) => {
   }
 
   try {
-    const r = await fetch(`${TMDB}/${type}/${id}?api_key=${key}&language=fr-FR`);
+    const r = await fetch(`${TMDB}/${type}/${id}?api_key=${key}&language=fr-FR&append_to_response=credits,videos,release_dates,content_ratings`);
     if (!r.ok) {
       res.status(502).json({ error: "Erreur TMDB" });
       return;
@@ -76,6 +76,34 @@ router.get("/tmdb/details", async (req: Request, res: Response) => {
     const runtime = type === "tv"
       ? (Array.isArray(m.episode_run_time) ? m.episode_run_time[0] : null)
       : m.runtime;
+
+    const credits = m.credits ?? {};
+    const cast = Array.isArray(credits.cast)
+      ? (credits.cast.slice(0, 8).map((c: any) => c.name).filter(Boolean).join(", ") || null)
+      : null;
+    const director = type === "tv"
+      ? (Array.isArray(m.created_by) && m.created_by[0] ? m.created_by[0].name : null)
+      : (Array.isArray(credits.crew) ? (credits.crew.find((c: any) => c.job === "Director")?.name ?? null) : null);
+
+    const videos = Array.isArray(m.videos?.results) ? m.videos.results : [];
+    const trailer = videos.find((v: any) => v.site === "YouTube" && v.type === "Trailer") ?? videos.find((v: any) => v.site === "YouTube");
+    const trailerUrl = trailer?.key ? `https://www.youtube.com/watch?v=${trailer.key}` : null;
+
+    const country = type === "tv"
+      ? ((Array.isArray(m.origin_country) && m.origin_country[0]) || (Array.isArray(m.production_countries) && m.production_countries[0] ? m.production_countries[0].name : null) || null)
+      : (Array.isArray(m.production_countries) && m.production_countries[0] ? m.production_countries[0].name : null);
+
+    let maturityRating: string | null = null;
+    if (type === "movie") {
+      const rd = Array.isArray(m.release_dates?.results) ? m.release_dates.results : [];
+      const pick = rd.find((x: any) => x.iso_3166_1 === "FR") ?? rd.find((x: any) => x.iso_3166_1 === "US");
+      maturityRating = pick?.release_dates?.find((d: any) => d.certification)?.certification || null;
+    } else {
+      const cr = Array.isArray(m.content_ratings?.results) ? m.content_ratings.results : [];
+      const pick = cr.find((x: any) => x.iso_3166_1 === "FR") ?? cr.find((x: any) => x.iso_3166_1 === "US");
+      maturityRating = pick?.rating || null;
+    }
+
     res.json({
       title: (type === "tv" ? m.name : m.title) || "",
       contentType: type === "tv" ? "series" : "movie",
@@ -85,6 +113,14 @@ router.get("/tmdb/details", async (req: Request, res: Response) => {
       posterUrl: m.poster_path ? `${IMG}/w500${m.poster_path}` : null,
       backdropUrl: m.backdrop_path ? `${IMG}/w1280${m.backdrop_path}` : null,
       genre: Array.isArray(m.genres) && m.genres[0] ? m.genres[0].name : null,
+      tagline: m.tagline || null,
+      originalLanguage: m.original_language || null,
+      cast,
+      director,
+      trailerUrl,
+      country,
+      maturityRating,
+      tmdbId: m.id ?? id,
     });
   } catch (err) {
     req.log.error({ err }, "TMDB details failed");

@@ -28,6 +28,14 @@ async function formatContent(c: any, categoryName?: string | null) {
     durationMinutes: c.durationMinutes,
     contentType: c.contentType,
     isFeatured: c.isFeatured,
+    maturityRating: c.maturityRating ?? null,
+    cast: c.cast ?? null,
+    director: c.director ?? null,
+    tagline: c.tagline ?? null,
+    trailerUrl: c.trailerUrl ?? null,
+    originalLanguage: c.originalLanguage ?? null,
+    country: c.country ?? null,
+    tmdbId: c.tmdbId ?? null,
     averageRating: c.averageRating ? Number(c.averageRating) : null,
     viewCount: c.viewCount,
     createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : c.createdAt,
@@ -66,13 +74,15 @@ router.post("/content", async (req, res) => {
   if (!await requireStaff(req, res)) return;
   const parsed = CreateContentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
-  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured } = parsed.data;
+  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured, maturityRating, cast, director, tagline, trailerUrl, originalLanguage, country, tmdbId } = parsed.data;
   const item = await db.insert(contentTable).values({
     title, description, posterUrl, backdropUrl, videoUrl,
     categoryId: categoryId ? Number(categoryId) : null,
     genre, releaseYear: releaseYear ? Number(releaseYear) : null,
     durationMinutes: durationMinutes ? Number(durationMinutes) : null,
-    contentType, isFeatured: isFeatured ?? false
+    contentType, isFeatured: isFeatured ?? false,
+    maturityRating, cast, director, tagline, trailerUrl, originalLanguage, country,
+    tmdbId: tmdbId ? Number(tmdbId) : null,
   }).returning();
   const formatted = await formatContent(item[0]);
   res.status(201).json(formatted);
@@ -152,7 +162,7 @@ router.patch("/content/:id", async (req, res) => {
   if (!await requireStaff(req, res)) return;
   const parsed = UpdateContentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
-  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured } = parsed.data;
+  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured, maturityRating, cast, director, tagline, trailerUrl, originalLanguage, country, tmdbId } = parsed.data;
   const item = await db.update(contentTable).set({
     ...(title && { title }),
     ...(description !== undefined && { description }),
@@ -165,6 +175,14 @@ router.patch("/content/:id", async (req, res) => {
     ...(durationMinutes !== undefined && { durationMinutes: durationMinutes ? Number(durationMinutes) : null }),
     ...(contentType && { contentType }),
     ...(isFeatured !== undefined && { isFeatured }),
+    ...(maturityRating !== undefined && { maturityRating }),
+    ...(cast !== undefined && { cast }),
+    ...(director !== undefined && { director }),
+    ...(tagline !== undefined && { tagline }),
+    ...(trailerUrl !== undefined && { trailerUrl }),
+    ...(originalLanguage !== undefined && { originalLanguage }),
+    ...(country !== undefined && { country }),
+    ...(tmdbId !== undefined && { tmdbId: tmdbId ? Number(tmdbId) : null }),
   }).where(eq(contentTable.id, Number(req.params.id))).returning();
   if (!item[0]) { res.status(404).json({ error: "Not found" }); return; }
   res.json(await formatContent(item[0]));

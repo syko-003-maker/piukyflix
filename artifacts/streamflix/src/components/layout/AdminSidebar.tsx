@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Film, FolderTree, Users, ArrowLeft, Mail } from "lucide-react";
+import { LayoutDashboard, Film, FolderTree, Users, ArrowLeft, Mail, Megaphone } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useGetMe } from "@workspace/api-client-react";
@@ -18,6 +18,7 @@ export function AdminSidebar() {
       ? [
           { href: "/admin/users", label: "Utilisateurs", icon: Users },
           { href: "/admin/invite", label: "Invitations", icon: Mail },
+          { href: "/admin/ads", label: "Publicité", icon: Megaphone },
         ]
       : []),
   ];

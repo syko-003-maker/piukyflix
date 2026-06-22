@@ -3,7 +3,7 @@ import { useListUsers, useDeleteUser, useUpdateUserRole, useGetMe } from "@works
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Users, Search } from "lucide-react";
+import { Trash2, Users, Search, Crown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Reveal } from "@/components/admin/admin-ui";
@@ -24,6 +24,13 @@ export default function AdminUsers() {
   const setStatus = async (id: string, status: string) => {
     await fetch(`/api/admin/users/${id}/status`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
+    });
+    refetch();
+  };
+
+  const setVip = async (id: string, isVip: boolean) => {
+    await fetch(`/api/admin/users/${id}/vip`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isVip }),
     });
     refetch();
   };
@@ -144,6 +151,11 @@ export default function AdminUsers() {
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge(u.status)}`}>
                             {statusLabel(u.status)}
                           </span>
+                          {u.isVip && (
+                            <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-yellow-500/40 bg-yellow-500/15 px-2 py-0.5 text-xs font-medium text-yellow-400">
+                              <Crown className="h-3 w-3" /> VIP
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{new Date(u.createdAt).toLocaleDateString("fr-FR")}</TableCell>
                         <TableCell className="text-muted-foreground">{u.lastActiveAt ? new Date(u.lastActiveAt).toLocaleDateString("fr-FR") : "—"}</TableCell>
@@ -182,6 +194,15 @@ export default function AdminUsers() {
                                 <SelectItem value="banned">Banni</SelectItem>
                               </SelectContent>
                             </Select>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`${u.isVip ? "text-yellow-400" : "text-gray-400"} hover:text-yellow-300 transition-colors duration-200`}
+                              title={u.isVip ? "Retirer le statut VIP" : "Passer VIP"}
+                              onClick={() => setVip(u.id, !u.isVip)}
+                            >
+                              <Crown className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

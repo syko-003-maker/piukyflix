@@ -1,10 +1,11 @@
 import { useParams, useLocation } from "wouter";
 import { useEffect, useRef, useState } from "react";
-import { useGetContent, useGetWatchProgress, useUpdateWatchProgress, getGetContentQueryKey, getGetWatchProgressQueryKey } from "@workspace/api-client-react";
+import { useGetContent, useGetWatchProgress, useUpdateWatchProgress, useGetMe, getGetContentQueryKey, getGetWatchProgressQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Maximize, Pause, Play as PlayIcon, Volume2, VolumeX, SkipForward } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { getDriveEmbedUrl } from "@/lib/video";
+import { PrerollAd } from "@/components/content/preroll-ad";
 
 export default function Watch() {
   const { id } = useParams();
@@ -24,6 +25,7 @@ export default function Watch() {
   });
 
   const updateProgress = useUpdateWatchProgress();
+  const { data: me } = useGetMe();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,6 +37,9 @@ export default function Watch() {
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [ended, setEnded] = useState(false);
+  const [ad, setAd] = useState<any>(null);
+  const [adChecked, setAdChecked] = useState(false);
+  const [adDone, setAdDone] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Search every season's episodes (the content GET already embeds them), not just season 1.
@@ -53,6 +58,18 @@ export default function Watch() {
   const posterSrc = (content?.contentType === "series"
     ? (episode?.thumbnailUrl || content?.backdropUrl || content?.posterUrl)
     : (content?.backdropUrl || content?.posterUrl)) || undefined;
+
+  // Pre-roll ad for non-VIP / non-staff users (checked once on mount).
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ads/active")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (active) { setAd(d); setAdChecked(true); } })
+      .catch(() => { if (active) setAdChecked(true); });
+    return () => { active = false; };
+  }, []);
+  const isVipOrStaff = !!me && (me.isVip || me.role === "admin" || me.role === "moderator");
+  const showAd = adChecked && !!ad && !isVipOrStaff && !adDone;
 
   useEffect(() => {
     if (videoRef.current && watchProgress && watchProgress.progressSeconds > 0) {
@@ -170,6 +187,12 @@ export default function Watch() {
       onMouseMove={handleMouseMove}
       onClick={() => showControls ? togglePlay() : handleMouseMove()}
     >
+      {showAd ? (
+        <PrerollAd ad={ad} onComplete={() => setAdDone(true)} />
+      ) : !adChecked ? (
+        <div className="text-white text-xl">Chargement…</div>
+      ) : (
+      <>
       {driveEmbed ? (
         <iframe
           src={driveEmbed}
@@ -294,6 +317,8 @@ export default function Watch() {
           </div>
         </div>
       </div>
+      )}
+      </>
       )}
     </div>
   );

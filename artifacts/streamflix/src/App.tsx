@@ -22,6 +22,7 @@ import AdminContent from "@/pages/admin/content";
 import AdminCategories from "@/pages/admin/categories";
 import AdminUsers from "@/pages/admin/users";
 import AdminInvite from "@/pages/admin/invite";
+import AdminAds from "@/pages/admin/ads";
 
 const queryClient = new QueryClient();
 
@@ -162,6 +163,20 @@ function AdminRoute({ component: Component, adminOnly }: { component: any; admin
   return <Component />;
 }
 
+// Requires sign-in to view any content page; signed-out users go to sign-in.
+function Protected({ component: Component }: { component: any }) {
+  return (
+    <>
+      <Show when="signed-in">
+        <Component />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+    </>
+  );
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -179,12 +194,12 @@ function ClerkProviderWithRoutes() {
         <ClerkQueryClientCacheInvalidator />
         <Switch>
           <Route path="/" component={HomeRedirect} />
-          <Route path="/browse" component={Browse} />
-          <Route path="/content/:id" component={ContentDetail} />
-          <Route path="/watch/:id" component={Watch} />
-          <Route path="/search" component={Search} />
-          <Route path="/favorites" component={Favorites} />
-          <Route path="/history" component={History} />
+          <Route path="/browse"><Protected component={Browse} /></Route>
+          <Route path="/content/:id"><Protected component={ContentDetail} /></Route>
+          <Route path="/watch/:id"><Protected component={Watch} /></Route>
+          <Route path="/search"><Protected component={Search} /></Route>
+          <Route path="/favorites"><Protected component={Favorites} /></Route>
+          <Route path="/history"><Protected component={History} /></Route>
           
           {/* Admin Routes */}
           <Route path="/admin">
@@ -201,6 +216,9 @@ function ClerkProviderWithRoutes() {
           </Route>
           <Route path="/admin/invite">
             <AdminRoute component={AdminInvite} adminOnly />
+          </Route>
+          <Route path="/admin/ads">
+            <AdminRoute component={AdminAds} adminOnly />
           </Route>
 
           <Route path="/sign-in/*?" component={SignInPage} />

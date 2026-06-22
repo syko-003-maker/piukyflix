@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Edit, Trash2, Plus } from "lucide-react";
+import { Edit, Trash2, Plus, FolderTree } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Reveal } from "@/components/admin/admin-ui";
 
 interface CatForm { name: string; description: string; }
 const emptyForm: CatForm = { name: "", description: "" };
@@ -49,97 +51,127 @@ export default function AdminCategories() {
     <div className="min-h-screen bg-background flex">
       <AdminSidebar />
 
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Gérer les catégories</h1>
-            <p className="text-muted-foreground mt-1">Organisez le contenu par catégories</p>
+      <main className="flex-1 overflow-y-auto p-8">
+        <Reveal>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl border border-white/10 bg-secondary/60 p-3 text-primary">
+                <FolderTree className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">Gérer les catégories</h1>
+                <p className="text-muted-foreground mt-1">Organisez le contenu par catégories</p>
+              </div>
+            </div>
+            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+              <Button onClick={openAdd} className="bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20">
+                <Plus className="mr-2 h-4 w-4" /> Ajouter
+              </Button>
+            </motion.div>
           </div>
-          <Button onClick={openAdd} className="bg-primary hover:bg-primary/90 text-white font-bold">
-            <Plus className="mr-2 h-4 w-4" /> Ajouter
-          </Button>
-        </div>
+        </Reveal>
 
-        <div className="bg-card border border-border rounded-xl overflow-hidden max-w-4xl">
-          <Table>
-            <TableHeader className="bg-secondary/50">
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground w-14">ID</TableHead>
-                <TableHead className="text-muted-foreground">Nom</TableHead>
-                <TableHead className="text-muted-foreground">Description</TableHead>
-                <TableHead className="text-muted-foreground">Créée le</TableHead>
-                <TableHead className="text-muted-foreground text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Chargement…</TableCell>
+        <Reveal delay={0.08}>
+          <div className="bg-card border border-white/10 rounded-2xl overflow-hidden max-w-4xl transition-colors duration-300 hover:border-white/20">
+            <Table>
+              <TableHeader className="bg-secondary/50">
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-muted-foreground w-14">ID</TableHead>
+                  <TableHead className="text-muted-foreground">Nom</TableHead>
+                  <TableHead className="text-muted-foreground">Description</TableHead>
+                  <TableHead className="text-muted-foreground">Créée le</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
-              ) : categories?.map(cat => (
-                <TableRow key={cat.id} className="border-border hover:bg-secondary/30">
-                  <TableCell className="font-medium text-muted-foreground text-xs">{cat.id}</TableCell>
-                  <TableCell className="font-bold text-white">{cat.name}</TableCell>
-                  <TableCell className="text-gray-300 text-sm max-w-xs truncate">{cat.description || "—"}</TableCell>
-                  <TableCell className="text-gray-300 text-sm">{new Date(cat.createdAt).toLocaleDateString("fr-FR")}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-8 w-8" onClick={() => openEdit(cat)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-destructive h-8 w-8"
-                        onClick={() => handleDelete(cat.id)} disabled={deleteCategory.isPending}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {categories?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Aucune catégorie trouvée</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Chargement…</TableCell>
+                  </TableRow>
+                ) : categories?.map((cat, i) => (
+                  <motion.tr
+                    key={cat.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                    whileHover={{ x: 4 }}
+                    className="border-b border-white/10 transition-colors hover:bg-secondary/30"
+                  >
+                    <TableCell className="font-medium text-muted-foreground text-xs">{cat.id}</TableCell>
+                    <TableCell className="font-bold text-white">{cat.name}</TableCell>
+                    <TableCell className="text-gray-300 text-sm max-w-xs truncate">{cat.description || "—"}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{new Date(cat.createdAt).toLocaleDateString("fr-FR")}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-white/5 h-8 w-8 transition-colors" onClick={() => openEdit(cat)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-destructive hover:bg-destructive/10 h-8 w-8 transition-colors"
+                          onClick={() => handleDelete(cat.id)} disabled={deleteCategory.isPending}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+                {categories?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Aucune catégorie trouvée</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Reveal>
       </main>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-card border-border text-white max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              {editingId ? "Modifier la catégorie" : "Ajouter une catégorie"}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="bg-card border-white/10 text-white max-w-md rounded-2xl">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={editingId ?? "new"}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                  <span className="rounded-xl border border-white/10 bg-secondary/60 p-2 text-primary">
+                    {editingId ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  </span>
+                  {editingId ? "Modifier la catégorie" : "Ajouter une catégorie"}
+                </DialogTitle>
+              </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-white font-medium">Nom *</Label>
-              <Input required value={form.name}
-                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                placeholder="Nom de la catégorie" className="bg-secondary/50 border-border text-white" />
-            </div>
+              <form onSubmit={handleSubmit} className="space-y-4 py-2">
+                <div className="space-y-1.5">
+                  <Label className="text-white font-medium">Nom *</Label>
+                  <Input required value={form.name}
+                    onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                    placeholder="Nom de la catégorie" className="bg-secondary/50 border-white/10 text-white transition-colors focus-visible:border-primary/50" />
+                </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-white font-medium">Description</Label>
-              <Textarea value={form.description}
-                onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                placeholder="Description optionnelle…" rows={3}
-                className="resize-none bg-secondary/50 border-border text-white" />
-            </div>
+                <div className="space-y-1.5">
+                  <Label className="text-white font-medium">Description</Label>
+                  <Textarea value={form.description}
+                    onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                    placeholder="Description optionnelle…" rows={3}
+                    className="resize-none bg-secondary/50 border-white/10 text-white transition-colors focus-visible:border-primary/50" />
+                </div>
 
-            <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}
-                className="border-border text-white hover:bg-secondary">
-                Annuler
-              </Button>
-              <Button type="submit" disabled={createCategory.isPending || updateCategory.isPending}
-                className="bg-primary hover:bg-primary/90 text-white font-bold">
-                {editingId ? "Enregistrer" : "Créer"}
-              </Button>
-            </DialogFooter>
-          </form>
+                <DialogFooter className="pt-2">
+                  <Button type="button" variant="outline" onClick={() => setModalOpen(false)}
+                    className="border-white/10 text-white hover:bg-secondary">
+                    Annuler
+                  </Button>
+                  <Button type="submit" disabled={createCategory.isPending || updateCategory.isPending}
+                    className="bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20">
+                    {editingId ? "Enregistrer" : "Créer"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </motion.div>
+          </AnimatePresence>
         </DialogContent>
       </Dialog>
     </div>

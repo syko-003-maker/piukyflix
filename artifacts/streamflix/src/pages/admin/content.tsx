@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Edit, Trash2, Plus, ChevronDown, ChevronRight, Film, Tv, Star } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { Reveal } from "@/components/admin/admin-ui";
 
 type ContentType = "movie" | "series";
 
@@ -96,121 +98,156 @@ export default function AdminContent() {
     <div className="min-h-screen bg-background flex">
       <AdminSidebar />
 
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Gérer le contenu</h1>
-            <p className="text-muted-foreground mt-1">Ajouter, modifier ou supprimer des films et séries</p>
+      <main className="flex-1 overflow-y-auto p-8">
+        <Reveal>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">Gérer le contenu</h1>
+              <p className="text-muted-foreground mt-1">Ajouter, modifier ou supprimer des films et séries</p>
+            </div>
+            <Button onClick={openAdd}
+              className="bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 transition-all hover:shadow-primary/40 hover:-translate-y-0.5">
+              <Plus className="mr-2 h-4 w-4" /> Ajouter
+            </Button>
           </div>
-          <Button onClick={openAdd} className="bg-primary hover:bg-primary/90 text-white font-bold">
-            <Plus className="mr-2 h-4 w-4" /> Ajouter
-          </Button>
-        </div>
+        </Reveal>
 
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <Table>
-            <TableHeader className="bg-secondary/50">
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground w-10"></TableHead>
-                <TableHead className="text-muted-foreground w-14">ID</TableHead>
-                <TableHead className="text-muted-foreground">Titre</TableHead>
-                <TableHead className="text-muted-foreground">Type</TableHead>
-                <TableHead className="text-muted-foreground">Catégorie</TableHead>
-                <TableHead className="text-muted-foreground">Année</TableHead>
-                <TableHead className="text-muted-foreground">Note</TableHead>
-                <TableHead className="text-muted-foreground">Vues</TableHead>
-                <TableHead className="text-muted-foreground text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Chargement…</TableCell>
+        <Reveal delay={0.05}>
+          <div className="bg-card border border-white/10 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+            <Table>
+              <TableHeader className="bg-secondary/50">
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-muted-foreground w-10"></TableHead>
+                  <TableHead className="text-muted-foreground w-14">ID</TableHead>
+                  <TableHead className="text-muted-foreground">Titre</TableHead>
+                  <TableHead className="text-muted-foreground">Type</TableHead>
+                  <TableHead className="text-muted-foreground">Catégorie</TableHead>
+                  <TableHead className="text-muted-foreground">Année</TableHead>
+                  <TableHead className="text-muted-foreground">Note</TableHead>
+                  <TableHead className="text-muted-foreground">Vues</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
-              ) : content?.items.map(item => (
-                <>
-                  <TableRow key={item.id} className="border-border hover:bg-secondary/30">
-                    <TableCell>
-                      {item.contentType === "series" && (
-                        <button
-                          onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                          className="text-muted-foreground hover:text-white transition-colors"
-                        >
-                          {expandedId === item.id
-                            ? <ChevronDown className="h-4 w-4" />
-                            : <ChevronRight className="h-4 w-4" />}
-                        </button>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium text-muted-foreground text-xs">{item.id}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-12 bg-secondary rounded overflow-hidden flex-shrink-0">
-                          {item.posterUrl && <img src={item.posterUrl} alt="" className="w-full h-full object-cover" />}
-                        </div>
-                        <div>
-                          <span className="font-medium text-white">{item.title}</span>
-                          {item.isFeatured && (
-                            <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded">
-                              À la une
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex items-center gap-1.5 text-gray-300 text-sm">
-                        {item.contentType === "movie" ? <Film className="h-3.5 w-3.5" /> : <Tv className="h-3.5 w-3.5" />}
-                        {item.contentType === "movie" ? "Film" : "Série"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-gray-300 text-sm">{item.categoryName || "—"}</TableCell>
-                    <TableCell className="text-gray-300 text-sm">{item.releaseYear || "—"}</TableCell>
-                    <TableCell className="text-sm">
-                      {item.averageRating ? (
-                        <span className="flex items-center gap-1 text-yellow-400">
-                          <Star className="h-3.5 w-3.5 fill-current" />
-                          {item.averageRating.toFixed(1)}
-                        </span>
-                      ) : <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell className="text-gray-300 text-sm">{item.viewCount.toLocaleString("fr-FR")}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-8 w-8" onClick={() => openEdit(item)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-destructive h-8 w-8"
-                          onClick={() => handleDelete(item.id)} disabled={deleteContent.isPending}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Chargement…</TableCell>
                   </TableRow>
-                  {item.contentType === "series" && expandedId === item.id && (
-                    <TableRow className="border-border bg-secondary/10">
-                      <TableCell colSpan={9} className="p-0">
-                        <SeasonsPanel contentId={item.id} />
+                ) : content?.items.map((item, i) => (
+                  <>
+                    <motion.tr
+                      key={item.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, delay: Math.min(i * 0.04, 0.4), ease: [0.16, 1, 0.3, 1] }}
+                      className="border-b border-white/10 transition-colors hover:bg-secondary/30 data-[state=selected]:bg-muted"
+                    >
+                      <TableCell>
+                        {item.contentType === "series" && (
+                          <button
+                            onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                            className="text-muted-foreground hover:text-white transition-colors"
+                          >
+                            <motion.span
+                              animate={{ rotate: expandedId === item.id ? 90 : 0 }}
+                              transition={{ type: "spring", stiffness: 300, damping: 22 }}
+                              className="inline-flex"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </motion.span>
+                          </button>
+                        )}
                       </TableCell>
-                    </TableRow>
-                  )}
-                </>
-              ))}
-              {content?.items.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Aucun contenu trouvé</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                      <TableCell className="font-medium text-muted-foreground text-xs">{item.id}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-12 bg-secondary rounded overflow-hidden flex-shrink-0 ring-1 ring-white/10">
+                            {item.posterUrl && <img src={item.posterUrl} alt="" className="w-full h-full object-cover" />}
+                          </div>
+                          <div>
+                            <span className="font-medium text-white">{item.title}</span>
+                            {item.isFeatured && (
+                              <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded">
+                                À la une
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="flex items-center gap-1.5 text-gray-300 text-sm">
+                          {item.contentType === "movie" ? <Film className="h-3.5 w-3.5" /> : <Tv className="h-3.5 w-3.5" />}
+                          {item.contentType === "movie" ? "Film" : "Série"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-gray-300 text-sm">{item.categoryName || "—"}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{item.releaseYear || "—"}</TableCell>
+                      <TableCell className="text-sm">
+                        {item.averageRating ? (
+                          <span className="flex items-center gap-1 text-yellow-400">
+                            <Star className="h-3.5 w-3.5 fill-current" />
+                            {item.averageRating.toFixed(1)}
+                          </span>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-gray-300 text-sm">{item.viewCount.toLocaleString("fr-FR")}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-white/5 h-8 w-8 transition-colors" onClick={() => openEdit(item)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-destructive hover:bg-destructive/10 h-8 w-8 transition-colors"
+                            onClick={() => handleDelete(item.id)} disabled={deleteContent.isPending}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </motion.tr>
+                    <AnimatePresence initial={false}>
+                      {item.contentType === "series" && expandedId === item.id && (
+                        <motion.tr
+                          key={`${item.id}-panel`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="border-b border-white/10 bg-secondary/10"
+                        >
+                          <TableCell colSpan={9} className="p-0">
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <SeasonsPanel contentId={item.id} />
+                            </motion.div>
+                          </TableCell>
+                        </motion.tr>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ))}
+                {content?.items.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Aucun contenu trouvé</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Reveal>
       </main>
 
       {/* Modal Add/Edit */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-card border-border text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-card border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl shadow-black/40">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                {editingId ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              </span>
               {editingId ? "Modifier le contenu" : "Ajouter un contenu"}
             </DialogTitle>
           </DialogHeader>
@@ -220,13 +257,13 @@ export default function AdminContent() {
               <div className="col-span-2 space-y-1.5">
                 <Label className="text-white font-medium">Titre *</Label>
                 <Input required value={form.title} onChange={f("title")}
-                  placeholder="Titre du contenu" className="bg-secondary/50 border-border text-white" />
+                  placeholder="Titre du contenu" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-white font-medium">Type *</Label>
                 <select value={form.contentType} onChange={f("contentType")}
-                  className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary">
+                  className="w-full bg-secondary/50 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary">
                   <option value="movie">Film</option>
                   <option value="series">Série</option>
                 </select>
@@ -235,7 +272,7 @@ export default function AdminContent() {
               <div className="space-y-1.5">
                 <Label className="text-white font-medium">Catégorie</Label>
                 <select value={form.categoryId} onChange={f("categoryId")}
-                  className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary">
+                  className="w-full bg-secondary/50 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary">
                   <option value="">— Aucune —</option>
                   {categories?.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -246,20 +283,20 @@ export default function AdminContent() {
               <div className="space-y-1.5">
                 <Label className="text-white font-medium">Genre</Label>
                 <Input value={form.genre} onChange={f("genre")}
-                  placeholder="ex: Action, Comédie…" className="bg-secondary/50 border-border text-white" />
+                  placeholder="ex: Action, Comédie…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-white font-medium">Année de sortie</Label>
                 <Input type="number" value={form.releaseYear} onChange={f("releaseYear")}
-                  placeholder="2024" className="bg-secondary/50 border-border text-white" />
+                  placeholder="2024" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
               </div>
 
               {form.contentType === "movie" && (
                 <div className="space-y-1.5">
                   <Label className="text-white font-medium">Durée (minutes)</Label>
                   <Input type="number" value={form.durationMinutes} onChange={f("durationMinutes")}
-                    placeholder="120" className="bg-secondary/50 border-border text-white" />
+                    placeholder="120" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
                 </div>
               )}
 
@@ -267,33 +304,33 @@ export default function AdminContent() {
                 <Label className="text-white font-medium">Description</Label>
                 <Textarea value={form.description} onChange={f("description")}
                   placeholder="Synopsis du contenu…" rows={3}
-                  className="resize-none bg-secondary/50 border-border text-white" />
+                  className="resize-none bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
               </div>
 
               <div className="col-span-2 space-y-1.5">
                 <Label className="text-white font-medium">URL Poster</Label>
                 <Input value={form.posterUrl} onChange={f("posterUrl")}
-                  placeholder="https://…" className="bg-secondary/50 border-border text-white" />
+                  placeholder="https://…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
               </div>
 
               <div className="col-span-2 space-y-1.5">
                 <Label className="text-white font-medium">URL Backdrop</Label>
                 <Input value={form.backdropUrl} onChange={f("backdropUrl")}
-                  placeholder="https://…" className="bg-secondary/50 border-border text-white" />
+                  placeholder="https://…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
               </div>
 
               {form.contentType === "movie" && (
                 <div className="col-span-2 space-y-1.5">
                   <Label className="text-white font-medium">URL Vidéo</Label>
                   <Input value={form.videoUrl} onChange={f("videoUrl")}
-                    placeholder="https://…" className="bg-secondary/50 border-border text-white" />
+                    placeholder="https://…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
                 </div>
               )}
 
-              <div className="col-span-2 flex items-center gap-3">
+              <div className="col-span-2 flex items-center gap-3 rounded-xl border border-white/10 bg-secondary/30 p-3">
                 <input type="checkbox" id="featured" checked={form.isFeatured}
                   onChange={(e) => setForm(prev => ({ ...prev, isFeatured: e.target.checked }))}
-                  className="h-4 w-4 rounded border-border accent-primary" />
+                  className="h-4 w-4 rounded border-white/10 accent-primary" />
                 <Label htmlFor="featured" className="text-white font-medium cursor-pointer">
                   Mettre à la une (affichée dans le hero)
                 </Label>
@@ -302,11 +339,11 @@ export default function AdminContent() {
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setModalOpen(false)}
-                className="border-border text-white hover:bg-secondary">
+                className="border-white/10 text-white hover:bg-secondary">
                 Annuler
               </Button>
               <Button type="submit" disabled={createContent.isPending || updateContent.isPending}
-                className="bg-primary hover:bg-primary/90 text-white font-bold">
+                className="bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 transition-all hover:shadow-primary/40">
                 {editingId ? "Enregistrer" : "Créer"}
               </Button>
             </DialogFooter>
@@ -345,60 +382,83 @@ function SeasonsPanel({ contentId }: { contentId: number }) {
   };
 
   return (
-    <div className="px-8 py-4 bg-secondary/5 border-t border-border/50">
+    <div className="px-8 py-4 bg-secondary/5 border-t border-white/10">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-white">Saisons</h3>
-        <Button size="sm" variant="outline" className="h-7 text-xs border-border text-white hover:bg-secondary"
+        <Button size="sm" variant="outline" className="h-7 text-xs border-white/10 text-white hover:bg-secondary transition-colors"
           onClick={() => setAddingSeason(true)}>
           <Plus className="h-3 w-3 mr-1" /> Ajouter une saison
         </Button>
       </div>
 
-      {addingSeason && (
-        <form onSubmit={handleAddSeason} className="flex items-end gap-3 mb-4 p-3 bg-secondary/30 rounded-lg border border-border">
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">N° saison</Label>
-            <Input type="number" required value={seasonForm.seasonNumber}
-              onChange={e => setSeasonForm(p => ({ ...p, seasonNumber: e.target.value }))}
-              className="h-8 w-24 bg-secondary border-border text-white text-sm" placeholder="1" />
-          </div>
-          <div className="flex-1 space-y-1">
-            <Label className="text-xs text-muted-foreground">Titre (optionnel)</Label>
-            <Input value={seasonForm.title}
-              onChange={e => setSeasonForm(p => ({ ...p, title: e.target.value }))}
-              className="h-8 bg-secondary border-border text-white text-sm" placeholder="Titre de la saison" />
-          </div>
-          <Button type="submit" size="sm" className="h-8 bg-primary text-white text-xs">Créer</Button>
-          <Button type="button" size="sm" variant="ghost" className="h-8 text-muted-foreground text-xs"
-            onClick={() => setAddingSeason(false)}>Annuler</Button>
-        </form>
-      )}
+      <AnimatePresence initial={false}>
+        {addingSeason && (
+          <motion.form
+            onSubmit={handleAddSeason}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-end gap-3 mb-4 p-3 bg-secondary/30 rounded-xl border border-white/10 overflow-hidden"
+          >
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">N° saison</Label>
+              <Input type="number" required value={seasonForm.seasonNumber}
+                onChange={e => setSeasonForm(p => ({ ...p, seasonNumber: e.target.value }))}
+                className="h-8 w-24 bg-secondary border-white/10 text-white text-sm" placeholder="1" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs text-muted-foreground">Titre (optionnel)</Label>
+              <Input value={seasonForm.title}
+                onChange={e => setSeasonForm(p => ({ ...p, title: e.target.value }))}
+                className="h-8 bg-secondary border-white/10 text-white text-sm" placeholder="Titre de la saison" />
+            </div>
+            <Button type="submit" size="sm" className="h-8 bg-primary text-white text-xs">Créer</Button>
+            <Button type="button" size="sm" variant="ghost" className="h-8 text-muted-foreground text-xs"
+              onClick={() => setAddingSeason(false)}>Annuler</Button>
+          </motion.form>
+        )}
+      </AnimatePresence>
 
       <div className="space-y-2">
         {seasons?.map(season => (
-          <div key={season.id} className="border border-border/50 rounded-lg overflow-hidden">
+          <div key={season.id} className="border border-white/10 rounded-xl overflow-hidden transition-colors hover:border-white/20">
             <div className="flex items-center justify-between px-4 py-2.5 bg-secondary/20 hover:bg-secondary/30 transition-colors">
               <button
                 className="flex items-center gap-2 flex-1 text-left"
                 onClick={() => setExpandedSeason(expandedSeason === season.id ? null : season.id)}
               >
-                {expandedSeason === season.id
-                  ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                <motion.span
+                  animate={{ rotate: expandedSeason === season.id ? 90 : 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 22 }}
+                  className="inline-flex"
+                >
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                </motion.span>
                 <span className="text-sm font-medium text-white">
                   Saison {season.seasonNumber}{season.title ? ` — ${season.title}` : ""}
                 </span>
               </button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                 onClick={() => handleDeleteSeason(season.id)}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
-            {expandedSeason === season.id && (
-              <div className="px-4 py-3">
-                <EpisodesPanel seasonId={season.id} />
-              </div>
-            )}
+            <AnimatePresence initial={false}>
+              {expandedSeason === season.id && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 py-3">
+                    <EpisodesPanel seasonId={season.id} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         ))}
         {seasons?.length === 0 && (
@@ -433,42 +493,68 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
 
   return (
     <div className="space-y-2">
-      {episodes?.map(ep => (
-        <div key={ep.id} className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-secondary/20 group">
-          <span className="text-xs font-bold text-muted-foreground w-5 text-center">{ep.episodeNumber}</span>
-          <span className="flex-1 text-sm text-white">{ep.title}</span>
-          {ep.durationMinutes && <span className="text-xs text-muted-foreground">{ep.durationMinutes} min</span>}
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100"
-            onClick={() => { if (confirm("Supprimer cet épisode ?")) deleteEpisode.mutate({ episodeId: ep.id }, { onSuccess: () => refetch() }); }}>
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
-      ))}
+      <AnimatePresence initial={false}>
+        {episodes?.map((ep, i) => (
+          <motion.div
+            key={ep.id}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            transition={{ duration: 0.25, delay: Math.min(i * 0.03, 0.3), ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-secondary/20 transition-colors group"
+          >
+            <span className="text-xs font-bold text-muted-foreground w-5 text-center">{ep.episodeNumber}</span>
+            <span className="flex-1 text-sm text-white">{ep.title}</span>
+            {ep.durationMinutes && <span className="text-xs text-muted-foreground">{ep.durationMinutes} min</span>}
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+              onClick={() => { if (confirm("Supprimer cet épisode ?")) deleteEpisode.mutate({ episodeId: ep.id }, { onSuccess: () => refetch() }); }}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
 
-      {adding ? (
-        <form onSubmit={handleAdd} className="grid grid-cols-4 gap-2 pt-2 border-t border-border/30">
-          <Input type="number" required value={epForm.episodeNumber}
-            onChange={e => setEpForm(p => ({ ...p, episodeNumber: e.target.value }))}
-            placeholder="N°" className="h-7 text-xs bg-secondary border-border text-white" />
-          <Input required value={epForm.title}
-            onChange={e => setEpForm(p => ({ ...p, title: e.target.value }))}
-            placeholder="Titre" className="h-7 text-xs bg-secondary border-border text-white col-span-2" />
-          <Input type="number" value={epForm.durationMinutes}
-            onChange={e => setEpForm(p => ({ ...p, durationMinutes: e.target.value }))}
-            placeholder="min" className="h-7 text-xs bg-secondary border-border text-white" />
-          <Input value={epForm.videoUrl}
-            onChange={e => setEpForm(p => ({ ...p, videoUrl: e.target.value }))}
-            placeholder="URL vidéo" className="h-7 text-xs bg-secondary border-border text-white col-span-2" />
-          <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-white">OK</Button>
-          <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground"
-            onClick={() => setAdding(false)}>✕</Button>
-        </form>
-      ) : (
-        <button onClick={() => setAdding(true)}
-          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 pt-1">
-          <Plus className="h-3 w-3" /> Ajouter un épisode
-        </button>
-      )}
+      <AnimatePresence initial={false} mode="wait">
+        {adding ? (
+          <motion.form
+            key="ep-form"
+            onSubmit={handleAdd}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="grid grid-cols-4 gap-2 pt-2 border-t border-white/10 overflow-hidden"
+          >
+            <Input type="number" required value={epForm.episodeNumber}
+              onChange={e => setEpForm(p => ({ ...p, episodeNumber: e.target.value }))}
+              placeholder="N°" className="h-7 text-xs bg-secondary border-white/10 text-white" />
+            <Input required value={epForm.title}
+              onChange={e => setEpForm(p => ({ ...p, title: e.target.value }))}
+              placeholder="Titre" className="h-7 text-xs bg-secondary border-white/10 text-white col-span-2" />
+            <Input type="number" value={epForm.durationMinutes}
+              onChange={e => setEpForm(p => ({ ...p, durationMinutes: e.target.value }))}
+              placeholder="min" className="h-7 text-xs bg-secondary border-white/10 text-white" />
+            <Input value={epForm.videoUrl}
+              onChange={e => setEpForm(p => ({ ...p, videoUrl: e.target.value }))}
+              placeholder="URL vidéo" className="h-7 text-xs bg-secondary border-white/10 text-white col-span-2" />
+            <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-white">OK</Button>
+            <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground"
+              onClick={() => setAdding(false)}>✕</Button>
+          </motion.form>
+        ) : (
+          <motion.button
+            key="ep-add-btn"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setAdding(true)}
+            className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 pt-1"
+          >
+            <Plus className="h-3 w-3" /> Ajouter un épisode
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

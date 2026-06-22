@@ -13,7 +13,7 @@ import {
 } from "@workspace/api-client-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
-import { Play, Plus, Check, Star } from "lucide-react";
+import { Play, Plus, Check, Star, Film } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -127,12 +127,16 @@ export default function ContentDetail() {
                   )}
                   {content.contentType === "series" && <span>{content.seasons?.length || 0} saison{(content.seasons?.length || 0) > 1 ? 's' : ''}</span>}
                   {content.genre && <span className="border border-white/20 px-2 py-0.5 rounded text-xs">{content.genre}</span>}
+                  {content.maturityRating && <span className="border border-white/40 px-2 py-0.5 rounded text-xs font-semibold">{content.maturityRating}</span>}
                   <div className="flex items-center text-yellow-500">
                     <Star className="h-4 w-4 fill-current mr-1" />
                     <span>{content.averageRating ? content.averageRating.toFixed(1) : "Non noté"}</span>
                   </div>
                 </div>
                 
+                {content.tagline && (
+                  <p className="text-lg italic text-primary/90 max-w-3xl">« {content.tagline} »</p>
+                )}
                 <p className="text-lg text-gray-300 max-w-3xl leading-relaxed">
                   {content.description}
                 </p>
@@ -156,6 +160,13 @@ export default function ContentDetail() {
                       <><Plus className="mr-2 h-5 w-5" /> Ma liste</>
                     )}
                   </Button>
+                  {content.trailerUrl && (
+                    <a href={content.trailerUrl} target="_blank" rel="noopener noreferrer">
+                      <Button size="lg" variant="outline" className="border-white/20 hover:bg-white/10 text-white font-bold px-8">
+                        <Film className="mr-2 h-5 w-5" /> Bande-annonce
+                      </Button>
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -279,6 +290,36 @@ export default function ContentDetail() {
                   <dt className="text-muted-foreground font-medium">Genre</dt>
                   <dd className="text-white">{content.genre || "—"}</dd>
                 </div>
+                {content.director && (
+                  <div>
+                    <dt className="text-muted-foreground font-medium">Réalisateur</dt>
+                    <dd className="text-white">{content.director}</dd>
+                  </div>
+                )}
+                {content.cast && (
+                  <div>
+                    <dt className="text-muted-foreground font-medium">Casting</dt>
+                    <dd className="text-white">{content.cast}</dd>
+                  </div>
+                )}
+                {content.maturityRating && (
+                  <div>
+                    <dt className="text-muted-foreground font-medium">Classification</dt>
+                    <dd className="text-white">{content.maturityRating}</dd>
+                  </div>
+                )}
+                {content.originalLanguage && (
+                  <div>
+                    <dt className="text-muted-foreground font-medium">Langue d'origine</dt>
+                    <dd className="text-white uppercase">{content.originalLanguage}</dd>
+                  </div>
+                )}
+                {content.country && (
+                  <div>
+                    <dt className="text-muted-foreground font-medium">Pays</dt>
+                    <dd className="text-white">{content.country}</dd>
+                  </div>
+                )}
                 {content.contentType === "movie" && (
                   <div>
                     <dt className="text-muted-foreground font-medium">Durée</dt>

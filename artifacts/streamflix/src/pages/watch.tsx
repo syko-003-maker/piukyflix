@@ -4,6 +4,7 @@ import { useGetContent, useGetWatchProgress, useUpdateWatchProgress, useListEpis
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Maximize, Pause, Play as PlayIcon, Volume2, VolumeX } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { getDriveEmbedUrl } from "@/lib/video";
 
 export default function Watch() {
   const { id } = useParams();
@@ -43,6 +44,7 @@ export default function Watch() {
   const episode = episodeId ? episodes?.find(e => e.id === episodeId) : undefined;
   const videoUrl = content?.contentType === "series" ? episode?.videoUrl : content?.videoUrl;
   const title = content?.contentType === "series" ? `${content?.title} — ${episode?.title}` : content?.title;
+  const driveEmbed = getDriveEmbedUrl(videoUrl || "");
 
   useEffect(() => {
     if (videoRef.current && watchProgress && watchProgress.progressSeconds > 0) {
@@ -160,7 +162,15 @@ export default function Watch() {
       onMouseMove={handleMouseMove}
       onClick={() => showControls ? togglePlay() : handleMouseMove()}
     >
-      {videoUrl ? (
+      {driveEmbed ? (
+        <iframe
+          src={driveEmbed}
+          className="absolute inset-0 h-full w-full"
+          allow="autoplay; fullscreen; encrypted-media"
+          allowFullScreen
+          title={title || "Lecture"}
+        />
+      ) : videoUrl ? (
         <video
           ref={videoRef}
           src={videoUrl}
@@ -176,8 +186,23 @@ export default function Watch() {
         <div className="text-white text-xl">Vidéo non disponible</div>
       )}
 
-      {/* Superposition des contrôles */}
-      <div 
+      {driveEmbed && (
+        <div className="pointer-events-none absolute top-0 left-0 right-0 z-10 flex items-center gap-4 bg-gradient-to-b from-black/70 to-transparent p-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="pointer-events-auto rounded-full text-white hover:bg-white/20"
+            onClick={() => setLocation(`/content/${contentId}`)}
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </Button>
+          <h1 className="text-xl font-bold text-white drop-shadow-md">{title}</h1>
+        </div>
+      )}
+
+      {/* Superposition des contrôles (lecteur custom uniquement) */}
+      {!driveEmbed && (
+      <div
         className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 transition-opacity duration-300 flex flex-col justify-between ${showControls ? 'opacity-100' : 'opacity-0 cursor-none'}`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -246,6 +271,7 @@ export default function Watch() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

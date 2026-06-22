@@ -77,7 +77,7 @@ export default function Requests() {
   const sorted = [...reqs].sort((a, b) => b.votes - a.votes);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
 
       <main className="flex-1 container max-w-3xl px-4 md:px-6 py-12">

@@ -5,7 +5,7 @@ import { Play, Tv, Film, MonitorPlay } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-1">

@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useGetMe } from "@workspace/api-client-react";
 
 export function Navbar() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { signOut } = useClerk();
   const { user } = useUser();
   const { data: me } = useGetMe();
@@ -28,33 +28,25 @@ export function Navbar() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+  const navCls = (href: string) =>
+    `text-sm font-medium transition-colors ${location === href ? "text-white" : "text-muted-foreground hover:text-white"}`;
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? "border-b border-white/10 bg-background/90 shadow-lg shadow-black/30 backdrop-blur-md" : "border-b border-transparent bg-background/30 backdrop-blur-sm"}`}>
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center">
-            <span className="text-2xl font-extrabold tracking-tight text-white">
+            <span className="text-2xl font-extrabold tracking-tight text-white" style={{ filter: "drop-shadow(0 0 14px hsl(265 89% 66% / 0.55))" }}>
               Piuky<span className="text-primary">Flix</span>
             </span>
           </Link>
           <Show when="signed-in">
             <nav className="hidden md:flex gap-6 items-center">
-              <Link href="/browse" className="text-sm font-medium transition-colors hover:text-primary">
-                Catalogue
-              </Link>
-              <Link href="/search" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                Recherche
-              </Link>
-              <Link href="/favorites" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                Ma liste
-              </Link>
-              <Link href="/history" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                Historique
-              </Link>
-              <Link href="/requests" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                Demandes
-              </Link>
+              <Link href="/browse" className={navCls("/browse")}>Catalogue</Link>
+              <Link href="/search" className={navCls("/search")}>Recherche</Link>
+              <Link href="/favorites" className={navCls("/favorites")}>Ma liste</Link>
+              <Link href="/history" className={navCls("/history")}>Historique</Link>
+              <Link href="/requests" className={navCls("/requests")}>Demandes</Link>
               {isAdmin && (
                 <Link href="/admin">
                   <span className="flex items-center gap-1.5 text-sm font-semibold text-primary border border-primary/40 bg-primary/10 hover:bg-primary/20 px-3 py-1 rounded-md transition-colors">

@@ -7,7 +7,7 @@ export default function Favorites() {
   const { data: favorites, isLoading } = useListFavorites();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-1 container px-4 md:px-6 py-12">

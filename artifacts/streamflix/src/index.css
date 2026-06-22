@@ -372,3 +372,30 @@
   color: transparent;
 }
 .glow-primary { box-shadow: 0 0 45px -12px hsl(265 89% 66% / 0.55); }
+
+/* Living ambient background — animated violet/magenta aurora that drifts behind the app.
+   Sits above the solid body color (z-index:-1) but behind page content; public page roots
+   drop their opaque bg so this shows through. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 46% at 12% 16%, hsl(265 89% 48% / 0.34), transparent 72%),
+    radial-gradient(34% 42% at 88% 10%, hsl(320 85% 52% / 0.24), transparent 72%),
+    radial-gradient(48% 56% at 74% 88%, hsl(265 89% 52% / 0.28), transparent 72%),
+    radial-gradient(42% 50% at 28% 82%, hsl(292 85% 52% / 0.20), transparent 72%);
+  filter: blur(36px) saturate(135%);
+  animation: aurora-drift 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(2.5%, -2%, 0) scale(1.08); }
+  100% { transform: translate3d(-2.5%, 2.5%, 0) scale(1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+}

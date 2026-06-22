@@ -9,7 +9,8 @@ router.get("/search", async (req, res) => {
   const { q, type } = req.query as any;
   if (!q) { res.json([]); return; }
   const conditions = [
-    or(ilike(contentTable.title, `%${q}%`), ilike(contentTable.description, `%${q}%`))!
+    or(ilike(contentTable.title, `%${q}%`), ilike(contentTable.description, `%${q}%`))!,
+    eq(contentTable.isPublished, true)
   ];
   if (type) conditions.push(eq(contentTable.contentType, type));
   const results = await db.select().from(contentTable).where(and(...conditions)).limit(20);

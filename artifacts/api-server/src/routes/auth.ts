@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { getAuth, clerkClient } from "@clerk/express";
 import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { usersTable, invitationsTable } from "@workspace/db";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 const router = Router();
@@ -61,7 +61,7 @@ router.post("/auth/sync", async (req, res) => {
 
   if (existing[0]) {
     const updated = await db.update(usersTable)
-      .set({ email, username, avatarUrl, ...(isAdmin ? { role: "admin" } : {}) })
+      .set({ email, username, avatarUrl, lastActiveAt: new Date(), ...(isAdmin ? { role: "admin" } : {}) })
       .where(eq(usersTable.clerkId, userId))
       .returning();
     const u = updated[0];
@@ -76,8 +76,20 @@ router.post("/auth/sync", async (req, res) => {
     username,
     avatarUrl,
     role: isAdmin ? "admin" : "user",
+    lastActiveAt: new Date(),
   }).returning();
   const u = newUser[0];
+
+  // Mark a matching pending invitation as accepted (case-insensitive email match).
+  if (email) {
+    await db.update(invitationsTable)
+      .set({ acceptedAt: new Date(), acceptedByEmail: email })
+      .where(and(
+        sql`lower(${invitationsTable.email}) = ${email.toLowerCase()}`,
+        isNull(invitationsTable.acceptedAt),
+        eq(invitationsTable.revoked, false),
+      ));
+  }
   res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, createdAt: u.createdAt.toISOString() });
 });
 

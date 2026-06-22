@@ -36,6 +36,7 @@ async function formatContent(c: any, categoryName?: string | null) {
     originalLanguage: c.originalLanguage ?? null,
     country: c.country ?? null,
     tmdbId: c.tmdbId ?? null,
+    isPublished: c.isPublished,
     averageRating: c.averageRating ? Number(c.averageRating) : null,
     viewCount: c.viewCount,
     createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : c.createdAt,
@@ -56,10 +57,22 @@ router.get("/content", async (req, res) => {
   const { categoryId, genre, type } = req.query as any;
   const limit = toInt(req.query.limit, 20, 1, 100);
   const offset = toInt(req.query.offset, 0, 0, 1_000_000);
+
+  // Staff can request unpublished drafts too via ?all=true; the public never sees them.
+  let includeUnpublished = false;
+  if (req.query.all === "true") {
+    const { userId } = getAuth(req);
+    if (userId) {
+      const u = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId)).limit(1);
+      includeUnpublished = u[0]?.role === "admin" || u[0]?.role === "moderator";
+    }
+  }
+
   const conditions = [];
   if (categoryId) conditions.push(eq(contentTable.categoryId, Number(categoryId)));
   if (genre) conditions.push(eq(contentTable.genre, genre));
   if (type) conditions.push(eq(contentTable.contentType, type));
+  if (!includeUnpublished) conditions.push(eq(contentTable.isPublished, true));
 
   const items = conditions.length > 0
     ? await db.select().from(contentTable).where(and(...conditions)).orderBy(desc(contentTable.createdAt)).limit(limit).offset(offset)
@@ -74,7 +87,7 @@ router.post("/content", async (req, res) => {
   if (!await requireStaff(req, res)) return;
   const parsed = CreateContentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
-  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured, maturityRating, cast, director, tagline, trailerUrl, originalLanguage, country, tmdbId } = parsed.data;
+  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured, maturityRating, cast, director, tagline, trailerUrl, originalLanguage, country, tmdbId, isPublished } = parsed.data;
   const item = await db.insert(contentTable).values({
     title, description, posterUrl, backdropUrl, videoUrl,
     categoryId: categoryId ? Number(categoryId) : null,
@@ -83,27 +96,28 @@ router.post("/content", async (req, res) => {
     contentType, isFeatured: isFeatured ?? false,
     maturityRating, cast, director, tagline, trailerUrl, originalLanguage, country,
     tmdbId: tmdbId ? Number(tmdbId) : null,
+    isPublished: isPublished ?? true,
   }).returning();
   const formatted = await formatContent(item[0]);
   res.status(201).json(formatted);
 });
 
 router.get("/content/featured", async (req, res) => {
-  const items = await db.select().from(contentTable).where(eq(contentTable.isFeatured, true)).orderBy(desc(contentTable.createdAt)).limit(10);
+  const items = await db.select().from(contentTable).where(and(eq(contentTable.isFeatured, true), eq(contentTable.isPublished, true))).orderBy(desc(contentTable.createdAt)).limit(10);
   const formatted = await getContentList(items);
   res.json(formatted);
 });
 
 router.get("/content/latest", async (req, res) => {
   const limit = toInt(req.query.limit, 12, 1, 100);
-  const items = await db.select().from(contentTable).orderBy(desc(contentTable.createdAt)).limit(limit);
+  const items = await db.select().from(contentTable).where(eq(contentTable.isPublished, true)).orderBy(desc(contentTable.createdAt)).limit(limit);
   const formatted = await getContentList(items);
   res.json(formatted);
 });
 
 router.get("/content/popular", async (req, res) => {
   const limit = toInt(req.query.limit, 12, 1, 100);
-  const items = await db.select().from(contentTable).orderBy(desc(contentTable.viewCount), desc(contentTable.averageRating)).limit(limit);
+  const items = await db.select().from(contentTable).where(eq(contentTable.isPublished, true)).orderBy(desc(contentTable.viewCount), desc(contentTable.averageRating)).limit(limit);
   const formatted = await getContentList(items);
   res.json(formatted);
 });
@@ -162,7 +176,7 @@ router.patch("/content/:id", async (req, res) => {
   if (!await requireStaff(req, res)) return;
   const parsed = UpdateContentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
-  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured, maturityRating, cast, director, tagline, trailerUrl, originalLanguage, country, tmdbId } = parsed.data;
+  const { title, description, posterUrl, backdropUrl, videoUrl, categoryId, genre, releaseYear, durationMinutes, contentType, isFeatured, maturityRating, cast, director, tagline, trailerUrl, originalLanguage, country, tmdbId, isPublished } = parsed.data;
   const item = await db.update(contentTable).set({
     ...(title && { title }),
     ...(description !== undefined && { description }),
@@ -183,6 +197,7 @@ router.patch("/content/:id", async (req, res) => {
     ...(originalLanguage !== undefined && { originalLanguage }),
     ...(country !== undefined && { country }),
     ...(tmdbId !== undefined && { tmdbId: tmdbId ? Number(tmdbId) : null }),
+    ...(isPublished !== undefined && { isPublished }),
   }).where(eq(contentTable.id, Number(req.params.id))).returning();
   if (!item[0]) { res.status(404).json({ error: "Not found" }); return; }
   res.json(await formatContent(item[0]));

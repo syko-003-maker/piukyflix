@@ -23,6 +23,7 @@ export const contentTable = pgTable("content", {
   originalLanguage: text("original_language"),
   country: text("country"),
   tmdbId: integer("tmdb_id"),
+  isPublished: boolean("is_published").notNull().default(true),
   contentType: contentTypeEnum("content_type").notNull().default("movie"),
   isFeatured: boolean("is_featured").notNull().default(false),
   averageRating: numeric("average_rating", { precision: 3, scale: 1 }),

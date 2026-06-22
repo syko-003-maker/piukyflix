@@ -1,27 +1,30 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { categoriesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { categoriesTable, contentTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
 import { CreateCategoryBody, UpdateCategoryBody } from "@workspace/api-zod";
 import { requireStaff } from "../middlewares/auth";
 
 const router = Router();
 
-function formatCategory(c: typeof categoriesTable.$inferSelect) {
-  return { id: c.id, name: c.name, description: c.description, createdAt: c.createdAt.toISOString() };
+function formatCategory(c: typeof categoriesTable.$inferSelect, contentCount = 0) {
+  return { id: c.id, name: c.name, description: c.description, icon: c.icon ?? null, color: c.color ?? null, contentCount, createdAt: c.createdAt.toISOString() };
 }
 
 router.get("/categories", async (req, res) => {
   const cats = await db.select().from(categoriesTable).orderBy(categoriesTable.name);
-  res.json(cats.map(formatCategory));
+  const counts = await db.select({ categoryId: contentTable.categoryId, count: sql<number>`count(*)` }).from(contentTable).groupBy(contentTable.categoryId);
+  const countMap: Record<number, number> = {};
+  counts.forEach((c) => { if (c.categoryId != null) countMap[c.categoryId] = Number(c.count); });
+  res.json(cats.map((c) => formatCategory(c, countMap[c.id] ?? 0)));
 });
 
 router.post("/categories", async (req, res) => {
   if (!await requireStaff(req, res)) return;
   const parsed = CreateCategoryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
-  const { name, description } = parsed.data;
-  const cat = await db.insert(categoriesTable).values({ name, description }).returning();
+  const { name, description, icon, color } = parsed.data;
+  const cat = await db.insert(categoriesTable).values({ name, description, icon, color }).returning();
   res.status(201).json(formatCategory(cat[0]));
 });
 
@@ -35,8 +38,8 @@ router.patch("/categories/:id", async (req, res) => {
   if (!await requireStaff(req, res)) return;
   const parsed = UpdateCategoryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
-  const { name, description } = parsed.data;
-  const cat = await db.update(categoriesTable).set({ name, description }).where(eq(categoriesTable.id, Number(req.params.id))).returning();
+  const { name, description, icon, color } = parsed.data;
+  const cat = await db.update(categoriesTable).set({ name, description, icon, color }).where(eq(categoriesTable.id, Number(req.params.id))).returning();
   if (!cat[0]) { res.status(404).json({ error: "Not found" }); return; }
   res.json(formatCategory(cat[0]));
 });

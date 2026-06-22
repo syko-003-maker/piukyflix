@@ -30,6 +30,10 @@ export async function getDbUser(req: Request, res: Response): Promise<User | nul
     res.status(401).json({ error: "User not found" });
     return null;
   }
+  if (rows[0].status === "banned") {
+    res.status(403).json({ error: "Compte suspendu" });
+    return null;
+  }
   return rows[0];
 }
 

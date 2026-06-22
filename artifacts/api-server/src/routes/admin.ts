@@ -95,8 +95,22 @@ router.get("/admin/users", async (req, res) => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
   res.json(users.map(u => ({
     id: u.id, clerkId: u.clerkId, email: u.email, username: u.username,
-    role: u.role, avatarUrl: u.avatarUrl, createdAt: u.createdAt.toISOString(),
+    role: u.role, avatarUrl: u.avatarUrl, status: u.status,
+    lastActiveAt: u.lastActiveAt ? u.lastActiveAt.toISOString() : null,
+    createdAt: u.createdAt.toISOString(),
   })));
+});
+
+router.patch("/admin/users/:userId/status", async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  const status = String((req.body as any)?.status ?? "");
+  if (!["active", "suspended", "banned"].includes(status)) { res.status(400).json({ error: "Statut invalide" }); return; }
+  if (req.params.userId === admin.id) { res.status(400).json({ error: "Vous ne pouvez pas changer votre propre statut" }); return; }
+  const updated = await db.update(usersTable).set({ status }).where(eq(usersTable.id, req.params.userId)).returning();
+  if (!updated[0]) { res.status(404).json({ error: "Not found" }); return; }
+  const u = updated[0];
+  res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, status: u.status, lastActiveAt: u.lastActiveAt ? u.lastActiveAt.toISOString() : null, createdAt: u.createdAt.toISOString() });
 });
 
 router.patch("/admin/users/:userId/role", async (req, res) => {
@@ -188,6 +202,9 @@ router.get("/admin/invitations", async (req, res) => {
     id: r.id, email: r.email, role: r.role, message: r.message,
     status: r.status, invitedByEmail: r.invitedByEmail,
     sentAt: r.sentAt.toISOString(),
+    acceptedAt: r.acceptedAt ? r.acceptedAt.toISOString() : null,
+    acceptedByEmail: r.acceptedByEmail ?? null,
+    revoked: r.revoked,
   })));
 });
 
@@ -228,6 +245,13 @@ router.post("/admin/invitations/:id/resend", async (req, res) => {
     return;
   }
 
+  res.json({ success: true });
+});
+
+router.post("/admin/invitations/:id/revoke", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const updated = await db.update(invitationsTable).set({ revoked: true }).where(eq(invitationsTable.id, Number(req.params.id))).returning();
+  if (!updated[0]) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ success: true });
 });
 

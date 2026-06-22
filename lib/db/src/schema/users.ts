@@ -11,6 +11,8 @@ export const usersTable = pgTable("users", {
   username: text("username"),
   role: userRoleEnum("role").notNull().default("user"),
   avatarUrl: text("avatar_url"),
+  status: text("status").notNull().default("active"),
+  lastActiveAt: timestamp("last_active_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

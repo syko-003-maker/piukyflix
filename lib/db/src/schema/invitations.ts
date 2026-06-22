@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
 export const invitationStatusEnum = pgEnum("invitation_status", ["sent", "failed"]);
@@ -11,6 +11,9 @@ export const invitationsTable = pgTable("invitations", {
   status: invitationStatusEnum("status").notNull().default("sent"),
   invitedById: text("invited_by_id").references(() => usersTable.id, { onDelete: "set null" }),
   invitedByEmail: text("invited_by_email"),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  acceptedByEmail: text("accepted_by_email"),
+  revoked: boolean("revoked").notNull().default(false),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

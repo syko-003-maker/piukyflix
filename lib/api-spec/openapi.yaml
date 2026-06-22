@@ -193,6 +193,11 @@ paths:
           in: query
           schema:
             type: integer
+        - name: all
+          in: query
+          description: Staff-only — include unpublished drafts
+          schema:
+            type: boolean
       responses:
         "200":
           description: List of content
@@ -871,6 +876,10 @@ components:
           enum: [user, admin, moderator]
         avatarUrl:
           type: ["string", "null"]
+        status:
+          type: string
+        lastActiveAt:
+          type: ["string", "null"]
         createdAt:
           type: string
       required:
@@ -898,6 +907,12 @@ components:
           type: string
         description:
           type: ["string", "null"]
+        icon:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        contentCount:
+          type: integer
         createdAt:
           type: string
       required:
@@ -912,6 +927,10 @@ components:
           type: string
         description:
           type: string
+        icon:
+          type: string
+        color:
+          type: string
       required:
         - name
 
@@ -921,6 +940,10 @@ components:
         name:
           type: string
         description:
+          type: string
+        icon:
+          type: string
+        color:
           type: string
 
     Content:
@@ -973,6 +996,8 @@ components:
           type: ["string", "null"]
         tmdbId:
           type: ["integer", "null"]
+        isPublished:
+          type: boolean
         createdAt:
           type: string
       required:
@@ -1033,6 +1058,8 @@ components:
           type: ["string", "null"]
         tmdbId:
           type: ["integer", "null"]
+        isPublished:
+          type: boolean
         createdAt:
           type: string
         seasons:
@@ -1110,6 +1137,8 @@ components:
           type: string
         tmdbId:
           type: integer
+        isPublished:
+          type: boolean
       required:
         - title
         - contentType
@@ -1156,6 +1185,8 @@ components:
           type: string
         tmdbId:
           type: integer
+        isPublished:
+          type: boolean
 
     Season:
       type: object

@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Trash2, Plus, ChevronDown, ChevronRight, ChevronLeft, Film, Tv, Star, Search, ArrowUpDown, Eye, EyeOff } from "lucide-react";
+import { Edit, Trash2, Plus, ChevronDown, ChevronRight, ChevronLeft, Film, Tv, Star, Search, ArrowUpDown, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "@/components/admin/admin-ui";
@@ -184,7 +184,9 @@ export default function AdminContent() {
         const r = await importTmdbSeries(id);
         refetch();
         setImportingId(null);
-        alert(`Série « ${r.title} » importée : ${r.seasons} saison(s), ${r.episodes} épisode(s).\nIl ne reste qu'à ajouter la vidéo de chaque épisode (drag'n'drop ou lien).`);
+        alert(r.created
+          ? `Série « ${r.title} » importée : ${r.seasonsAdded} saison(s), ${r.episodesAdded} épisode(s).\nIl ne reste qu'à ajouter la vidéo de chaque épisode (drag'n'drop ou lien).`
+          : `Série « ${r.title} » synchronisée : ${r.seasonsAdded} nouvelle(s) saison(s) et ${r.episodesAdded} nouvel(aux) épisode(s) ajoutés (les vidéos existantes sont préservées).`);
         return;
       }
       const d = await tmdbDetails(type, id);
@@ -420,6 +422,14 @@ export default function AdminContent() {
                       <TableCell className="text-gray-300 text-sm">{item.viewCount.toLocaleString("fr-FR")}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          {item.contentType === "series" && item.tmdbId && (
+                            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-primary hover:bg-white/5 h-8 w-8 transition-colors"
+                              title="Synchroniser avec TMDB (ajoute les nouveaux épisodes)"
+                              disabled={importingId !== null}
+                              onClick={() => handleTmdbAdd("series", item.tmdbId)}>
+                              <RefreshCw className={`h-4 w-4 ${importingId === item.tmdbId ? "animate-spin" : ""}`} />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-white/5 h-8 w-8 transition-colors"
                             title={item.isPublished === false ? "Publier" : "Mettre en brouillon"}
                             onClick={() => updateContent.mutate({ id: item.id, data: { isPublished: !item.isPublished } as any }, { onSuccess: () => refetch() })}>

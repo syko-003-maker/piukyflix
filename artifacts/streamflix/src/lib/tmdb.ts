@@ -45,8 +45,9 @@ export async function tmdbDetails(type: "movie" | "series", id: number): Promise
 export interface TmdbImportResult {
   contentId: number;
   title: string;
-  seasons: number;
-  episodes: number;
+  created: boolean;
+  seasonsAdded: number;
+  episodesAdded: number;
 }
 
 /** Imports a whole TV series (all seasons + episodes) from TMDB in one server call. */

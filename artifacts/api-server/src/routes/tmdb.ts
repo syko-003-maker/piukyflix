@@ -145,10 +145,6 @@ router.post("/tmdb/import-series", async (req: Request, res: Response) => {
 
   try {
     const existing = await db.select().from(contentTable).where(eq(contentTable.tmdbId, id)).limit(1);
-    if (existing[0]) {
-      res.status(409).json({ error: "Cette série est déjà importée." });
-      return;
-    }
 
     const r = await fetch(`${TMDB}/tv/${id}?api_key=${key}&language=fr-FR&append_to_response=credits,videos,content_ratings`);
     if (!r.ok) {
@@ -157,59 +153,80 @@ router.post("/tmdb/import-series", async (req: Request, res: Response) => {
     }
     const m = (await r.json()) as any;
 
-    const credits = m.credits ?? {};
-    const cast = Array.isArray(credits.cast)
-      ? (credits.cast.slice(0, 8).map((c: any) => c.name).filter(Boolean).join(", ") || null)
-      : null;
-    const director = Array.isArray(m.created_by) && m.created_by[0] ? m.created_by[0].name : null;
-    const videos = Array.isArray(m.videos?.results) ? m.videos.results : [];
-    const trailer = videos.find((v: any) => v.site === "YouTube" && v.type === "Trailer") ?? videos.find((v: any) => v.site === "YouTube");
-    const trailerUrl = trailer?.key ? `https://www.youtube.com/watch?v=${trailer.key}` : null;
-    const country = (Array.isArray(m.origin_country) && m.origin_country[0]) ||
-      (Array.isArray(m.production_countries) && m.production_countries[0] ? m.production_countries[0].name : null) || null;
-    const cr = Array.isArray(m.content_ratings?.results) ? m.content_ratings.results : [];
-    const crPick = cr.find((x: any) => x.iso_3166_1 === "FR") ?? cr.find((x: any) => x.iso_3166_1 === "US");
-    const maturityRating = crPick?.rating || null;
-    const date = m.first_air_date;
+    // Create the series only if it doesn't exist yet; otherwise re-sync (add what's missing).
+    let content: any = existing[0];
+    const created = !content;
+    if (!content) {
+      const credits = m.credits ?? {};
+      const cast = Array.isArray(credits.cast)
+        ? (credits.cast.slice(0, 8).map((c: any) => c.name).filter(Boolean).join(", ") || null)
+        : null;
+      const director = Array.isArray(m.created_by) && m.created_by[0] ? m.created_by[0].name : null;
+      const videos = Array.isArray(m.videos?.results) ? m.videos.results : [];
+      const trailer = videos.find((v: any) => v.site === "YouTube" && v.type === "Trailer") ?? videos.find((v: any) => v.site === "YouTube");
+      const trailerUrl = trailer?.key ? `https://www.youtube.com/watch?v=${trailer.key}` : null;
+      const country = (Array.isArray(m.origin_country) && m.origin_country[0]) ||
+        (Array.isArray(m.production_countries) && m.production_countries[0] ? m.production_countries[0].name : null) || null;
+      const cr = Array.isArray(m.content_ratings?.results) ? m.content_ratings.results : [];
+      const crPick = cr.find((x: any) => x.iso_3166_1 === "FR") ?? cr.find((x: any) => x.iso_3166_1 === "US");
+      const maturityRating = crPick?.rating || null;
+      const date = m.first_air_date;
 
-    const [content] = await db.insert(contentTable).values({
-      title: m.name || "Sans titre",
-      description: m.overview || null,
-      posterUrl: m.poster_path ? `${IMG}/w500${m.poster_path}` : null,
-      backdropUrl: m.backdrop_path ? `${IMG}/w1280${m.backdrop_path}` : null,
-      genre: Array.isArray(m.genres) && m.genres[0] ? m.genres[0].name : null,
-      releaseYear: date ? Number(String(date).slice(0, 4)) : null,
-      durationMinutes: Array.isArray(m.episode_run_time) && m.episode_run_time[0] ? Number(m.episode_run_time[0]) : null,
-      contentType: "series",
-      maturityRating, cast, director,
-      tagline: m.tagline || null,
-      trailerUrl,
-      originalLanguage: m.original_language || null,
-      country,
-      tmdbId: id,
-    }).returning();
+      const inserted = await db.insert(contentTable).values({
+        title: m.name || "Sans titre",
+        description: m.overview || null,
+        posterUrl: m.poster_path ? `${IMG}/w500${m.poster_path}` : null,
+        backdropUrl: m.backdrop_path ? `${IMG}/w1280${m.backdrop_path}` : null,
+        genre: Array.isArray(m.genres) && m.genres[0] ? m.genres[0].name : null,
+        releaseYear: date ? Number(String(date).slice(0, 4)) : null,
+        durationMinutes: Array.isArray(m.episode_run_time) && m.episode_run_time[0] ? Number(m.episode_run_time[0]) : null,
+        contentType: "series",
+        maturityRating, cast, director,
+        tagline: m.tagline || null,
+        trailerUrl,
+        originalLanguage: m.original_language || null,
+        country,
+        tmdbId: id,
+      }).returning();
+      content = inserted[0];
+    }
+
+    // Map existing seasons/episodes so a re-sync only ADDS what's missing (never overwrites user videos).
+    const existingSeasons = await db.select().from(seasonsTable).where(eq(seasonsTable.contentId, content.id));
+    const seasonByNumber = new Map<number, any>();
+    existingSeasons.forEach((s) => seasonByNumber.set(s.seasonNumber, s));
 
     const seasonNumbers: number[] = (Array.isArray(m.seasons) ? m.seasons : [])
       .map((s: any) => Number(s.season_number))
       .filter((n: number) => Number.isFinite(n) && n >= 1)
       .sort((a: number, b: number) => a - b);
 
-    let seasonCount = 0;
-    let episodeCount = 0;
+    let seasonsAdded = 0;
+    let episodesAdded = 0;
     for (const sn of seasonNumbers) {
       const sr = await fetch(`${TMDB}/tv/${id}/season/${sn}?api_key=${key}&language=fr-FR`);
       if (!sr.ok) continue;
       const sd = (await sr.json()) as any;
-      const [season] = await db.insert(seasonsTable).values({
-        contentId: content.id,
-        seasonNumber: sn,
-        title: sd.name || null,
-        description: sd.overview || null,
-      }).returning();
-      seasonCount++;
-      const eps = (Array.isArray(sd.episodes) ? sd.episodes : []).filter((e: any) => Number.isFinite(Number(e.episode_number)));
-      if (eps.length > 0) {
-        await db.insert(episodesTable).values(eps.map((e: any) => ({
+
+      let season = seasonByNumber.get(sn);
+      if (!season) {
+        const insertedSeason = await db.insert(seasonsTable).values({
+          contentId: content.id,
+          seasonNumber: sn,
+          title: sd.name || null,
+          description: sd.overview || null,
+        }).returning();
+        season = insertedSeason[0];
+        seasonByNumber.set(sn, season);
+        seasonsAdded++;
+      }
+
+      const existingEps = await db.select().from(episodesTable).where(eq(episodesTable.seasonId, season.id));
+      const haveEpNums = new Set(existingEps.map((e) => e.episodeNumber));
+      const newEps = (Array.isArray(sd.episodes) ? sd.episodes : [])
+        .filter((e: any) => Number.isFinite(Number(e.episode_number)) && !haveEpNums.has(Number(e.episode_number)));
+      if (newEps.length > 0) {
+        await db.insert(episodesTable).values(newEps.map((e: any) => ({
           seasonId: season.id,
           episodeNumber: Number(e.episode_number),
           title: e.name || `Épisode ${e.episode_number}`,
@@ -218,11 +235,11 @@ router.post("/tmdb/import-series", async (req: Request, res: Response) => {
           thumbnailUrl: e.still_path ? `${IMG}/w300${e.still_path}` : null,
           durationMinutes: e.runtime ? Number(e.runtime) : null,
         })));
-        episodeCount += eps.length;
+        episodesAdded += newEps.length;
       }
     }
 
-    res.status(201).json({ contentId: content.id, title: content.title, seasons: seasonCount, episodes: episodeCount });
+    res.status(created ? 201 : 200).json({ contentId: content.id, title: content.title, created, seasonsAdded, episodesAdded });
   } catch (err) {
     req.log.error({ err }, "TMDB series import failed");
     res.status(502).json({ error: "Import TMDB échoué" });

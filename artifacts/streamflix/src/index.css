@@ -195,6 +195,12 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* Tailwind v4: the `container` utility caps width but does NOT center.
+     Center it so page content isn't stuck to the left on wide screens. */
+  .container {
+    margin-inline: auto;
+  }
 }
 
 /**

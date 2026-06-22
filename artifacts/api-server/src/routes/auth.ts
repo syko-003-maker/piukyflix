@@ -32,6 +32,7 @@ router.get("/auth/me", async (req, res) => {
     username: user[0].username,
     role: user[0].role,
     avatarUrl: user[0].avatarUrl,
+    isVip: user[0].isVip,
     createdAt: user[0].createdAt.toISOString(),
   });
 });
@@ -65,7 +66,7 @@ router.post("/auth/sync", async (req, res) => {
       .where(eq(usersTable.clerkId, userId))
       .returning();
     const u = updated[0];
-    res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, createdAt: u.createdAt.toISOString() });
+    res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, isVip: u.isVip, createdAt: u.createdAt.toISOString() });
     return;
   }
 
@@ -90,7 +91,7 @@ router.post("/auth/sync", async (req, res) => {
         eq(invitationsTable.revoked, false),
       ));
   }
-  res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, createdAt: u.createdAt.toISOString() });
+  res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, isVip: u.isVip, createdAt: u.createdAt.toISOString() });
 });
 
 export default router;

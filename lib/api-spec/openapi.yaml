@@ -880,6 +880,8 @@ components:
           type: string
         lastActiveAt:
           type: ["string", "null"]
+        isVip:
+          type: boolean
         createdAt:
           type: string
       required:

@@ -8,3 +8,4 @@ export * from "./watchHistory";
 export * from "./ratings";
 export * from "./comments";
 export * from "./invitations";
+export * from "./ads";

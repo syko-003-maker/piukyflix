@@ -95,7 +95,7 @@ router.get("/admin/users", async (req, res) => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
   res.json(users.map(u => ({
     id: u.id, clerkId: u.clerkId, email: u.email, username: u.username,
-    role: u.role, avatarUrl: u.avatarUrl, status: u.status,
+    role: u.role, avatarUrl: u.avatarUrl, status: u.status, isVip: u.isVip,
     lastActiveAt: u.lastActiveAt ? u.lastActiveAt.toISOString() : null,
     createdAt: u.createdAt.toISOString(),
   })));
@@ -110,7 +110,16 @@ router.patch("/admin/users/:userId/status", async (req, res) => {
   const updated = await db.update(usersTable).set({ status }).where(eq(usersTable.id, req.params.userId)).returning();
   if (!updated[0]) { res.status(404).json({ error: "Not found" }); return; }
   const u = updated[0];
-  res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, status: u.status, lastActiveAt: u.lastActiveAt ? u.lastActiveAt.toISOString() : null, createdAt: u.createdAt.toISOString() });
+  res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, status: u.status, isVip: u.isVip, lastActiveAt: u.lastActiveAt ? u.lastActiveAt.toISOString() : null, createdAt: u.createdAt.toISOString() });
+});
+
+router.patch("/admin/users/:userId/vip", async (req, res) => {
+  if (!await requireAdmin(req, res)) return;
+  const isVip = (req.body as any)?.isVip;
+  if (typeof isVip !== "boolean") { res.status(400).json({ error: "isVip booléen requis" }); return; }
+  const updated = await db.update(usersTable).set({ isVip }).where(eq(usersTable.id, req.params.userId)).returning();
+  if (!updated[0]) { res.status(404).json({ error: "Not found" }); return; }
+  res.json({ success: true });
 });
 
 router.patch("/admin/users/:userId/role", async (req, res) => {

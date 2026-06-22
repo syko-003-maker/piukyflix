@@ -17,6 +17,8 @@ import { Edit, Trash2, Plus, ChevronDown, ChevronRight, Film, Tv, Star } from "l
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "@/components/admin/admin-ui";
+import { TmdbImport } from "@/components/admin/tmdb-import";
+import { tmdbDetails } from "@/lib/tmdb";
 
 type ContentType = "movie" | "series";
 
@@ -52,6 +54,8 @@ export default function AdminContent() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ContentForm>(emptyForm);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [importingId, setImportingId] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const openAdd = () => { setForm(emptyForm); setEditingId(null); setModalOpen(true); };
   const openEdit = (item: any) => {
@@ -92,6 +96,34 @@ export default function AdminContent() {
     }
   };
 
+  const handleTmdbAdd = async (type: "movie" | "series", id: number) => {
+    setImportingId(id);
+    try {
+      const d = await tmdbDetails(type, id);
+      createContent.mutate(
+        {
+          data: {
+            title: d.title,
+            contentType: d.contentType,
+            description: d.description ?? undefined,
+            releaseYear: d.releaseYear ?? undefined,
+            durationMinutes: d.durationMinutes ?? undefined,
+            posterUrl: d.posterUrl ?? undefined,
+            backdropUrl: d.backdropUrl ?? undefined,
+            genre: d.genre ?? undefined,
+          } as any,
+        },
+        {
+          onSuccess: () => { refetch(); setImportingId(null); },
+          onError: () => setImportingId(null),
+        },
+      );
+    } catch (e) {
+      setImportingId(null);
+      alert(e instanceof Error ? e.message : "Import TMDB échoué");
+    }
+  };
+
   const f = (key: keyof ContentForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [key]: e.target.value }));
 
@@ -113,8 +145,28 @@ export default function AdminContent() {
           </div>
         </Reveal>
 
+        <Reveal delay={0.03}>
+          <div className="mb-6">
+            <TmdbImport onAdd={handleTmdbAdd} addingId={importingId} />
+          </div>
+        </Reveal>
+
         <Reveal delay={0.05}>
-          <div className="bg-card border border-white/10 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              const raw = e.dataTransfer.getData("application/x-tmdb");
+              if (!raw) return;
+              try {
+                const parsed = JSON.parse(raw);
+                if (parsed.type && parsed.id) handleTmdbAdd(parsed.type, parsed.id);
+              } catch { /* ignore */ }
+            }}
+            className={`bg-card border rounded-2xl overflow-hidden shadow-xl shadow-black/20 transition-colors ${dragOver ? "border-primary ring-2 ring-primary/40" : "border-white/10"}`}
+          >
             <Table>
               <TableHeader className="bg-secondary/50">
                 <TableRow className="border-white/10 hover:bg-transparent">

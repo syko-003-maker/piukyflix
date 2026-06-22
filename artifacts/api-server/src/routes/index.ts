@@ -8,6 +8,7 @@ import userContentRouter from "./userContent";
 import searchRouter from "./search";
 import adminRouter from "./admin";
 import storageRouter from "./storage";
+import tmdbRouter from "./tmdb";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(userContentRouter);
 router.use(searchRouter);
 router.use(adminRouter);
 router.use(storageRouter);
+router.use(tmdbRouter);
 
 export default router;

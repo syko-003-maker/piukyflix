@@ -606,10 +606,12 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
                 onChange={e => setEpForm(p => ({ ...p, durationMinutes: e.target.value }))}
                 placeholder="min" className="h-7 w-[80px] text-xs bg-secondary border-white/10 text-white" />
             </div>
+            <FileDrop value={epForm.videoUrl} accept="video/*" hint="Glisse la vidéo de l'épisode ici ou clique"
+              onChange={(url) => setEpForm(p => ({ ...p, videoUrl: url }))} />
             <div className="flex items-center gap-2">
               <Input value={epForm.videoUrl}
                 onChange={e => setEpForm(p => ({ ...p, videoUrl: e.target.value }))}
-                placeholder="URL vidéo" className="h-7 flex-1 text-xs bg-secondary border-white/10 text-white" />
+                placeholder="…ou colle une URL" className="h-7 flex-1 text-xs bg-secondary border-white/10 text-white" />
               <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-white">OK</Button>
               <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground"
                 onClick={() => setAdding(false)}>annuler</Button>

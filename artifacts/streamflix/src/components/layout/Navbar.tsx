@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useEffect, useState } from "react";
 import { Show, useClerk, useUser } from "@clerk/react";
 import { Search, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,13 +21,22 @@ export function Navbar() {
   const { data: me } = useGetMe();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   const isAdmin = me?.role === "admin" || me?.role === "moderator";
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? "border-b border-white/10 bg-background/90 shadow-lg shadow-black/30 backdrop-blur-md" : "border-b border-transparent bg-background/30 backdrop-blur-sm"}`}>
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6 md:gap-10">
-          <Link href="/" className="flex items-center gap-2">
-            <img src={`${basePath}/logo.svg`} alt="PiukyFlix" className="h-8 w-auto" />
+          <Link href="/" className="flex items-center">
+            <span className="text-2xl font-extrabold tracking-tight text-white">
+              Piuky<span className="text-primary">Flix</span>
+            </span>
           </Link>
           <Show when="signed-in">
             <nav className="hidden md:flex gap-6 items-center">

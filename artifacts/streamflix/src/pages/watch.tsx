@@ -2,7 +2,7 @@ import { useParams, useLocation } from "wouter";
 import { useEffect, useRef, useState } from "react";
 import { useGetContent, useGetWatchProgress, useUpdateWatchProgress, getGetContentQueryKey, getGetWatchProgressQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Maximize, Pause, Play as PlayIcon, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Maximize, Pause, Play as PlayIcon, Volume2, VolumeX, SkipForward } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { getDriveEmbedUrl } from "@/lib/video";
 
@@ -34,6 +34,7 @@ export default function Watch() {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [ended, setEnded] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Search every season's episodes (the content GET already embeds them), not just season 1.
@@ -43,6 +44,15 @@ export default function Watch() {
   const videoUrl = content?.contentType === "series" ? episode?.videoUrl : content?.videoUrl;
   const title = content?.contentType === "series" ? `${content?.title} — ${episode?.title}` : content?.title;
   const driveEmbed = getDriveEmbedUrl(videoUrl || "");
+
+  // Next-episode chaining (series): flat ordered list across seasons.
+  const allEpisodes = (content?.seasons ?? []).flatMap((s) => s.episodes ?? []);
+  const currentEpIndex = episodeId ? allEpisodes.findIndex((e) => e.id === episodeId) : -1;
+  const nextEpisode = currentEpIndex >= 0 && currentEpIndex < allEpisodes.length - 1 ? allEpisodes[currentEpIndex + 1] : undefined;
+  const goToNext = () => { if (nextEpisode) setLocation(`/watch/${contentId}?episodeId=${nextEpisode.id}`); };
+  const posterSrc = (content?.contentType === "series"
+    ? (episode?.thumbnailUrl || content?.backdropUrl || content?.posterUrl)
+    : (content?.backdropUrl || content?.posterUrl)) || undefined;
 
   useEffect(() => {
     if (videoRef.current && watchProgress && watchProgress.progressSeconds > 0) {
@@ -172,16 +182,26 @@ export default function Watch() {
         <video
           ref={videoRef}
           src={videoUrl}
+          poster={posterSrc}
           className="w-full h-full"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
-          onPlay={() => setIsPlaying(true)}
+          onPlay={() => { setIsPlaying(true); setEnded(false); }}
           onPause={() => setIsPlaying(false)}
-          onEnded={() => setIsPlaying(false)}
+          onEnded={() => { setIsPlaying(false); setEnded(true); }}
           autoPlay
         />
       ) : (
         <div className="text-white text-xl">Vidéo non disponible</div>
+      )}
+
+      {ended && nextEpisode && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/80" onClick={(e) => e.stopPropagation()}>
+          <p className="text-lg text-gray-300">Épisode terminé</p>
+          <Button onClick={goToNext} className="bg-primary px-8 py-6 text-lg font-bold text-white hover:bg-primary/90">
+            <SkipForward className="mr-2 h-6 w-6 fill-current" /> Épisode suivant
+          </Button>
+        </div>
       )}
 
       {driveEmbed && (
@@ -262,6 +282,11 @@ export default function Watch() {
             </div>
 
             <div className="flex items-center gap-4">
+              {nextEpisode && (
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" onClick={goToNext} title="Épisode suivant">
+                  <SkipForward className="h-6 w-6" />
+                </Button>
+              )}
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" onClick={toggleFullscreen}>
                 <Maximize className="h-6 w-6" />
               </Button>

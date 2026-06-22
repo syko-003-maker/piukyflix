@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/layout/Navbar";
-import { useGetFeaturedContent, useListContent, useListWatchHistory } from "@workspace/api-client-react";
+import { useGetFeaturedContent, useListContent, useListWatchHistory, useListCategories } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Play, Info } from "lucide-react";
 import { Link } from "wouter";
@@ -9,8 +9,10 @@ import { useAuth } from "@clerk/react";
 export default function Browse() {
   const { isSignedIn } = useAuth();
   const [limit, setLimit] = useState(20);
+  const [selectedCat, setSelectedCat] = useState<number | null>(null);
   const { data: featured, isLoading: isLoadingFeatured } = useGetFeaturedContent();
-  const { data: content, isLoading: isLoadingContent } = useListContent({ limit });
+  const { data: categories } = useListCategories();
+  const { data: content, isLoading: isLoadingContent } = useListContent({ limit, ...(selectedCat ? { categoryId: selectedCat } : {}) });
   const { data: history } = useListWatchHistory({ query: { enabled: !!isSignedIn } });
 
   const heroItem = featured?.[0] || content?.items?.[0];
@@ -69,6 +71,27 @@ export default function Browse() {
 
         {/* Grilles de contenu */}
         <div className="container px-4 md:px-6 py-8 space-y-12">
+          {categories && categories.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <button
+                onClick={() => setSelectedCat(null)}
+                className={`flex-none whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${selectedCat === null ? "border-primary bg-primary text-white" : "border-white/15 bg-secondary/40 text-gray-300 hover:bg-secondary"}`}
+              >
+                Tout
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCat(c.id)}
+                  style={selectedCat === c.id && c.color ? { backgroundColor: c.color, borderColor: c.color } : undefined}
+                  className={`flex-none whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${selectedCat === c.id ? "text-white" : "border-white/15 bg-secondary/40 text-gray-300 hover:bg-secondary"}`}
+                >
+                  {c.icon ? `${c.icon} ` : ""}{c.name}
+                </button>
+              ))}
+            </div>
+          )}
+
           {continueWatching.length > 0 && (
             <section>
               <h2 className="text-2xl font-bold text-white mb-6">Continuer à regarder</h2>
@@ -112,7 +135,7 @@ export default function Browse() {
           )}
 
           <section>
-            <h2 className="text-2xl font-bold text-white mb-6">Tendances actuelles</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">{selectedCat ? (categories?.find((c) => c.id === selectedCat)?.name ?? "Catégorie") : "Tendances actuelles"}</h2>
             {isLoadingContent ? (
               <div className="flex gap-4 overflow-hidden">
                 {[1,2,3,4,5].map(i => (

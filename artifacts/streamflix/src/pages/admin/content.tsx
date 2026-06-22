@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "@/components/admin/admin-ui";
 import { TmdbImport } from "@/components/admin/tmdb-import";
 import { tmdbDetails } from "@/lib/tmdb";
+import { FileDrop } from "@/components/admin/file-drop";
 
 type ContentType = "movie" | "series";
 
@@ -371,22 +372,28 @@ export default function AdminContent() {
               </div>
 
               <div className="col-span-2 space-y-1.5">
-                <Label className="text-white font-medium">URL Poster</Label>
+                <Label className="text-white font-medium">Affiche (poster)</Label>
+                <FileDrop value={form.posterUrl} accept="image/*" hint="Glisse une image ici ou clique"
+                  onChange={(url) => setForm(prev => ({ ...prev, posterUrl: url }))} />
                 <Input value={form.posterUrl} onChange={f("posterUrl")}
-                  placeholder="https://…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+                  placeholder="…ou colle une URL" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
               </div>
 
               <div className="col-span-2 space-y-1.5">
-                <Label className="text-white font-medium">URL Backdrop</Label>
+                <Label className="text-white font-medium">Image de fond (backdrop)</Label>
+                <FileDrop value={form.backdropUrl} accept="image/*" hint="Glisse une image ici ou clique"
+                  onChange={(url) => setForm(prev => ({ ...prev, backdropUrl: url }))} />
                 <Input value={form.backdropUrl} onChange={f("backdropUrl")}
-                  placeholder="https://…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+                  placeholder="…ou colle une URL" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
               </div>
 
               {form.contentType === "movie" && (
                 <div className="col-span-2 space-y-1.5">
-                  <Label className="text-white font-medium">URL Vidéo</Label>
+                  <Label className="text-white font-medium">Vidéo du film</Label>
+                  <FileDrop value={form.videoUrl} accept="video/*" hint="Glisse ta vidéo ici ou clique pour l'uploader"
+                    onChange={(url) => setForm(prev => ({ ...prev, videoUrl: url }))} />
                   <Input value={form.videoUrl} onChange={f("videoUrl")}
-                    placeholder="https://…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+                    placeholder="…ou colle une URL" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
                 </div>
               )}
 

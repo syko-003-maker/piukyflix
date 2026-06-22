@@ -35,5 +35,16 @@ services:
         sync: false
       - key: TMDB_API_KEY          # TMDB v3 API key, for auto-fetching film metadata + posters
         sync: false
+      # Cloudflare R2 (S3-compatible) for drag-n-drop file uploads
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
       - key: ADMIN_EMAILS          # optional, emails auto-promoted to admin
         sync: false

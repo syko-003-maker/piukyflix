@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
+import { getAuth, clerkClient } from "@clerk/express";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -37,18 +37,23 @@ router.get("/auth/me", async (req, res) => {
 });
 
 router.post("/auth/sync", async (req, res) => {
-  const { userId, sessionClaims } = getAuth(req);
+  const { userId } = getAuth(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  const email = (sessionClaims?.email as string) ?? "";
-  const username = (sessionClaims?.username as string) ?? null;
-  const avatarUrl = (sessionClaims?.image_url as string) ?? null;
-  // Treat the email as verified unless the claim is explicitly false. For full
-  // assurance, expose `email_verified` in the Clerk JWT template.
-  const emailVerified = sessionClaims?.email_verified !== false;
+  // Fetch the real profile from Clerk's backend API. A default Clerk instance
+  // does NOT include the email in the session-token claims, so reading it from
+  // the token would be empty and admin promotion would never trigger.
+  const clerkUser = await clerkClient.users.getUser(userId);
+  const primaryEmail =
+    clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId) ??
+    clerkUser.emailAddresses[0];
+  const email = primaryEmail?.emailAddress ?? "";
+  const emailVerified = primaryEmail?.verification?.status === "verified";
+  const username = clerkUser.username ?? null;
+  const avatarUrl = clerkUser.imageUrl ?? null;
 
   const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId)).limit(1);
 

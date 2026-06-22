@@ -1,6 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useEffect, useRef, useState } from "react";
-import { useGetContent, useGetWatchProgress, useUpdateWatchProgress, useListEpisodes, getGetContentQueryKey, getGetWatchProgressQueryKey, getListEpisodesQueryKey } from "@workspace/api-client-react";
+import { useGetContent, useGetWatchProgress, useUpdateWatchProgress, getGetContentQueryKey, getGetWatchProgressQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Maximize, Pause, Play as PlayIcon, Volume2, VolumeX } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
@@ -23,11 +23,6 @@ export default function Watch() {
     query: { enabled: !!contentId, queryKey: getGetWatchProgressQueryKey(contentId) }
   });
 
-  const seasonId = content?.seasons?.[0]?.id || 0;
-  const { data: episodes } = useListEpisodes(seasonId, {
-    query: { enabled: content?.contentType === "series" && !!content?.seasons?.[0]?.id, queryKey: getListEpisodesQueryKey(seasonId) }
-  });
-
   const updateProgress = useUpdateWatchProgress();
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -41,7 +36,10 @@ export default function Watch() {
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const episode = episodeId ? episodes?.find(e => e.id === episodeId) : undefined;
+  // Search every season's episodes (the content GET already embeds them), not just season 1.
+  const episode = episodeId
+    ? (content?.seasons ?? []).flatMap((s) => s.episodes ?? []).find((e) => e.id === episodeId)
+    : undefined;
   const videoUrl = content?.contentType === "series" ? episode?.videoUrl : content?.videoUrl;
   const title = content?.contentType === "series" ? `${content?.title} — ${episode?.title}` : content?.title;
   const driveEmbed = getDriveEmbedUrl(videoUrl || "");

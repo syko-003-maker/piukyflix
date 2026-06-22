@@ -1,4 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { db } from "@workspace/db";
+import { contentTable, seasonsTable, episodesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { requireStaff } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -125,6 +128,104 @@ router.get("/tmdb/details", async (req: Request, res: Response) => {
   } catch (err) {
     req.log.error({ err }, "TMDB details failed");
     res.status(502).json({ error: "Erreur TMDB" });
+  }
+});
+
+// POST /tmdb/import-series?id=123 -> create the series + all its seasons + episodes from TMDB
+router.post("/tmdb/import-series", async (req: Request, res: Response) => {
+  if (!(await requireStaff(req, res))) return;
+  const key = getKey(res);
+  if (!key) return;
+
+  const id = Number(req.query.id ?? (req.body as any)?.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    res.status(400).json({ error: "id invalide" });
+    return;
+  }
+
+  try {
+    const existing = await db.select().from(contentTable).where(eq(contentTable.tmdbId, id)).limit(1);
+    if (existing[0]) {
+      res.status(409).json({ error: "Cette série est déjà importée." });
+      return;
+    }
+
+    const r = await fetch(`${TMDB}/tv/${id}?api_key=${key}&language=fr-FR&append_to_response=credits,videos,content_ratings`);
+    if (!r.ok) {
+      res.status(502).json({ error: "Erreur TMDB" });
+      return;
+    }
+    const m = (await r.json()) as any;
+
+    const credits = m.credits ?? {};
+    const cast = Array.isArray(credits.cast)
+      ? (credits.cast.slice(0, 8).map((c: any) => c.name).filter(Boolean).join(", ") || null)
+      : null;
+    const director = Array.isArray(m.created_by) && m.created_by[0] ? m.created_by[0].name : null;
+    const videos = Array.isArray(m.videos?.results) ? m.videos.results : [];
+    const trailer = videos.find((v: any) => v.site === "YouTube" && v.type === "Trailer") ?? videos.find((v: any) => v.site === "YouTube");
+    const trailerUrl = trailer?.key ? `https://www.youtube.com/watch?v=${trailer.key}` : null;
+    const country = (Array.isArray(m.origin_country) && m.origin_country[0]) ||
+      (Array.isArray(m.production_countries) && m.production_countries[0] ? m.production_countries[0].name : null) || null;
+    const cr = Array.isArray(m.content_ratings?.results) ? m.content_ratings.results : [];
+    const crPick = cr.find((x: any) => x.iso_3166_1 === "FR") ?? cr.find((x: any) => x.iso_3166_1 === "US");
+    const maturityRating = crPick?.rating || null;
+    const date = m.first_air_date;
+
+    const [content] = await db.insert(contentTable).values({
+      title: m.name || "Sans titre",
+      description: m.overview || null,
+      posterUrl: m.poster_path ? `${IMG}/w500${m.poster_path}` : null,
+      backdropUrl: m.backdrop_path ? `${IMG}/w1280${m.backdrop_path}` : null,
+      genre: Array.isArray(m.genres) && m.genres[0] ? m.genres[0].name : null,
+      releaseYear: date ? Number(String(date).slice(0, 4)) : null,
+      durationMinutes: Array.isArray(m.episode_run_time) && m.episode_run_time[0] ? Number(m.episode_run_time[0]) : null,
+      contentType: "series",
+      maturityRating, cast, director,
+      tagline: m.tagline || null,
+      trailerUrl,
+      originalLanguage: m.original_language || null,
+      country,
+      tmdbId: id,
+    }).returning();
+
+    const seasonNumbers: number[] = (Array.isArray(m.seasons) ? m.seasons : [])
+      .map((s: any) => Number(s.season_number))
+      .filter((n: number) => Number.isFinite(n) && n >= 1)
+      .sort((a: number, b: number) => a - b);
+
+    let seasonCount = 0;
+    let episodeCount = 0;
+    for (const sn of seasonNumbers) {
+      const sr = await fetch(`${TMDB}/tv/${id}/season/${sn}?api_key=${key}&language=fr-FR`);
+      if (!sr.ok) continue;
+      const sd = (await sr.json()) as any;
+      const [season] = await db.insert(seasonsTable).values({
+        contentId: content.id,
+        seasonNumber: sn,
+        title: sd.name || null,
+        description: sd.overview || null,
+      }).returning();
+      seasonCount++;
+      const eps = (Array.isArray(sd.episodes) ? sd.episodes : []).filter((e: any) => Number.isFinite(Number(e.episode_number)));
+      if (eps.length > 0) {
+        await db.insert(episodesTable).values(eps.map((e: any) => ({
+          seasonId: season.id,
+          episodeNumber: Number(e.episode_number),
+          title: e.name || `Épisode ${e.episode_number}`,
+          description: e.overview || null,
+          videoUrl: null,
+          thumbnailUrl: e.still_path ? `${IMG}/w300${e.still_path}` : null,
+          durationMinutes: e.runtime ? Number(e.runtime) : null,
+        })));
+        episodeCount += eps.length;
+      }
+    }
+
+    res.status(201).json({ contentId: content.id, title: content.title, seasons: seasonCount, episodes: episodeCount });
+  } catch (err) {
+    req.log.error({ err }, "TMDB series import failed");
+    res.status(502).json({ error: "Import TMDB échoué" });
   }
 });
 

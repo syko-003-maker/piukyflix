@@ -41,3 +41,17 @@ export async function tmdbDetails(type: "movie" | "series", id: number): Promise
   if (!res.ok) throw new Error(await readError(res));
   return res.json();
 }
+
+export interface TmdbImportResult {
+  contentId: number;
+  title: string;
+  seasons: number;
+  episodes: number;
+}
+
+/** Imports a whole TV series (all seasons + episodes) from TMDB in one server call. */
+export async function importTmdbSeries(id: number): Promise<TmdbImportResult> {
+  const res = await fetch(`/api/tmdb/import-series?id=${id}`, { method: "POST" });
+  if (!res.ok) throw new Error(await readError(res));
+  return res.json();
+}

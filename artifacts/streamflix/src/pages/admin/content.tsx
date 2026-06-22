@@ -18,7 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "@/components/admin/admin-ui";
 import { TmdbImport } from "@/components/admin/tmdb-import";
-import { tmdbDetails } from "@/lib/tmdb";
+import { tmdbDetails, importTmdbSeries } from "@/lib/tmdb";
 import { FileDrop } from "@/components/admin/file-drop";
 
 type ContentType = "movie" | "series";
@@ -177,6 +177,13 @@ export default function AdminContent() {
   const handleTmdbAdd = async (type: "movie" | "series", id: number) => {
     setImportingId(id);
     try {
+      if (type === "series") {
+        const r = await importTmdbSeries(id);
+        refetch();
+        setImportingId(null);
+        alert(`Série « ${r.title} » importée : ${r.seasons} saison(s), ${r.episodes} épisode(s).\nIl ne reste qu'à ajouter la vidéo de chaque épisode (drag'n'drop ou lien).`);
+        return;
+      }
       const d = await tmdbDetails(type, id);
       createContent.mutate(
         {

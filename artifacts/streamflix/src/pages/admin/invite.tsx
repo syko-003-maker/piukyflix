@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect, useCallback } from "react";
-import { Mail, Send, CheckCircle, RefreshCw, Clock, XCircle, Users, ChevronDown } from "lucide-react";
+import { Mail, Send, CheckCircle, RefreshCw, Clock, XCircle, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TiltCard, Reveal } from "@/components/admin/admin-ui";
 
@@ -167,17 +168,16 @@ export default function AdminInvite() {
 
                 <div className="space-y-2">
                   <Label htmlFor="role" className="text-white font-medium">Rôle attribué</Label>
-                  <div className="relative">
-                    <select
-                      id="role" value={role} onChange={(e) => setRole(e.target.value as any)}
-                      className="w-full appearance-none bg-secondary/50 border border-white/10 rounded-xl px-3 py-2.5 pr-10 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary/50 hover:border-white/20"
-                    >
-                      <option value="user">Utilisateur</option>
-                      <option value="moderator">Modérateur</option>
-                      <option value="admin">Administrateur</option>
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  </div>
+                  <Select value={role} onValueChange={(v) => setRole(v as "user" | "admin" | "moderator")}>
+                    <SelectTrigger className="h-9 bg-secondary border-white/10 text-white">
+                      <SelectValue placeholder="Sélectionner un rôle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Utilisateur</SelectItem>
+                      <SelectItem value="moderator">Modérateur</SelectItem>
+                      <SelectItem value="admin">Administrateur</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <AnimatePresence mode="wait">
                     <motion.p
                       key={role}

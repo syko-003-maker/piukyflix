@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Reveal } from "@/components/admin/admin-ui";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -110,22 +111,25 @@ export default function AdminUsers() {
                         <TableCell className="text-muted-foreground">{new Date(u.createdAt).toLocaleDateString("fr-FR")}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end items-center gap-2">
-                            <select
+                            <Select
                               value={u.role}
-                              onChange={(e) =>
+                              onValueChange={(v) =>
                                 updateRole.mutate(
-                                  { userId: u.id, data: { role: e.target.value as any } },
+                                  { userId: u.id, data: { role: v as any } },
                                   { onSuccess: () => refetch() }
                                 )
                               }
                               disabled={u.id === me?.id || updateRole.isPending}
-                              className="rounded-lg border border-white/10 bg-secondary px-2.5 py-1.5 text-sm text-white transition-colors duration-200 hover:border-white/20 focus:border-primary/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                              title="Modifier le rôle"
                             >
-                              <option value="user">Utilisateur</option>
-                              <option value="moderator">Modérateur</option>
-                              <option value="admin">Admin</option>
-                            </select>
+                              <SelectTrigger className="h-9 w-[150px] bg-secondary border-white/10 text-white">
+                                <SelectValue placeholder="Rôle" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="user">Utilisateur</SelectItem>
+                                <SelectItem value="moderator">Modérateur</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <Button
                               variant="ghost"
                               size="icon"

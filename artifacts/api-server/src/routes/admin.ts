@@ -120,6 +120,10 @@ router.post("/admin/invite", async (req, res) => {
   const appUrl = (process.env.REPLIT_DOMAINS || "").split(",")[0]?.trim();
   const siteUrl = appUrl ? `https://${appUrl}` : "https://piukyflix.replit.app";
 
+  if (!process.env.RESEND_API_KEY) {
+    res.status(400).json({ error: "L'envoi d'e-mails n'est pas configuré (RESEND_API_KEY manquante). Tu peux aussi simplement partager l'URL du site : la personne s'inscrit directement." });
+    return;
+  }
   const resend = new Resend(process.env.RESEND_API_KEY);
   const { error } = await resend.emails.send({
     from: "PiukyFlix <onboarding@resend.dev>",
@@ -164,6 +168,10 @@ router.post("/admin/invitations/:id/resend", async (req, res) => {
   const appUrl = (process.env.REPLIT_DOMAINS || "").split(",")[0]?.trim();
   const siteUrl = appUrl ? `https://${appUrl}` : "https://piukyflix.replit.app";
 
+  if (!process.env.RESEND_API_KEY) {
+    res.status(400).json({ error: "L'envoi d'e-mails n'est pas configuré (RESEND_API_KEY manquante). Tu peux aussi simplement partager l'URL du site : la personne s'inscrit directement." });
+    return;
+  }
   const resend = new Resend(process.env.RESEND_API_KEY);
   const { error } = await resend.emails.send({
     from: "PiukyFlix <onboarding@resend.dev>",

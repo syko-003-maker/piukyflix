@@ -33,5 +33,7 @@ services:
         sync: false
       - key: RESEND_API_KEY        # optional, for invitation emails
         sync: false
+      - key: TMDB_API_KEY          # TMDB v3 API key, for auto-fetching film metadata + posters
+        sync: false
       - key: ADMIN_EMAILS          # optional, emails auto-promoted to admin
         sync: false

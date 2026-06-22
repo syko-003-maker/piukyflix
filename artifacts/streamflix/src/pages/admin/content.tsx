@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit, Trash2, Plus, ChevronDown, ChevronRight, Film, Tv, Star } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -262,22 +263,32 @@ export default function AdminContent() {
 
               <div className="space-y-1.5">
                 <Label className="text-white font-medium">Type *</Label>
-                <select value={form.contentType} onChange={f("contentType")}
-                  className="w-full bg-secondary/50 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary">
-                  <option value="movie">Film</option>
-                  <option value="series">Série</option>
-                </select>
+                <Select value={form.contentType}
+                  onValueChange={(v) => setForm(prev => ({ ...prev, contentType: v as ContentType }))}>
+                  <SelectTrigger className="h-9 bg-secondary border-white/10 text-white">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="movie">Film</SelectItem>
+                    <SelectItem value="series">Série</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-white font-medium">Catégorie</Label>
-                <select value={form.categoryId} onChange={f("categoryId")}
-                  className="w-full bg-secondary/50 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary">
-                  <option value="">— Aucune —</option>
-                  {categories?.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
+                <Select value={form.categoryId === "" ? "none" : form.categoryId}
+                  onValueChange={(v) => setForm(prev => ({ ...prev, categoryId: v === "none" ? "" : v }))}>
+                  <SelectTrigger className="h-9 bg-secondary border-white/10 text-white">
+                    <SelectValue placeholder="— Aucune —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Aucune —</SelectItem>
+                    {categories?.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1.5">
@@ -523,23 +534,27 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="grid grid-cols-4 gap-2 pt-2 border-t border-white/10 overflow-hidden"
+            className="flex flex-col gap-2 pt-2 border-t border-white/10 overflow-hidden"
           >
-            <Input type="number" required value={epForm.episodeNumber}
-              onChange={e => setEpForm(p => ({ ...p, episodeNumber: e.target.value }))}
-              placeholder="N°" className="h-7 text-xs bg-secondary border-white/10 text-white" />
-            <Input required value={epForm.title}
-              onChange={e => setEpForm(p => ({ ...p, title: e.target.value }))}
-              placeholder="Titre" className="h-7 text-xs bg-secondary border-white/10 text-white col-span-2" />
-            <Input type="number" value={epForm.durationMinutes}
-              onChange={e => setEpForm(p => ({ ...p, durationMinutes: e.target.value }))}
-              placeholder="min" className="h-7 text-xs bg-secondary border-white/10 text-white" />
-            <Input value={epForm.videoUrl}
-              onChange={e => setEpForm(p => ({ ...p, videoUrl: e.target.value }))}
-              placeholder="URL vidéo" className="h-7 text-xs bg-secondary border-white/10 text-white col-span-2" />
-            <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-white">OK</Button>
-            <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground"
-              onClick={() => setAdding(false)}>✕</Button>
+            <div className="flex items-center gap-2">
+              <Input type="number" required value={epForm.episodeNumber}
+                onChange={e => setEpForm(p => ({ ...p, episodeNumber: e.target.value }))}
+                placeholder="N°" className="h-7 w-[70px] text-xs bg-secondary border-white/10 text-white" />
+              <Input required value={epForm.title}
+                onChange={e => setEpForm(p => ({ ...p, title: e.target.value }))}
+                placeholder="Titre" className="h-7 flex-1 text-xs bg-secondary border-white/10 text-white" />
+              <Input type="number" value={epForm.durationMinutes}
+                onChange={e => setEpForm(p => ({ ...p, durationMinutes: e.target.value }))}
+                placeholder="min" className="h-7 w-[80px] text-xs bg-secondary border-white/10 text-white" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Input value={epForm.videoUrl}
+                onChange={e => setEpForm(p => ({ ...p, videoUrl: e.target.value }))}
+                placeholder="URL vidéo" className="h-7 flex-1 text-xs bg-secondary border-white/10 text-white" />
+              <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-white">OK</Button>
+              <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground"
+                onClick={() => setAdding(false)}>annuler</Button>
+            </div>
           </motion.form>
         ) : (
           <motion.button

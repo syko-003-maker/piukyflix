@@ -17,6 +17,9 @@ interface Invitation {
   status: "sent" | "failed";
   invitedByEmail: string | null;
   sentAt: string;
+  acceptedAt: string | null;
+  acceptedByEmail: string | null;
+  revoked: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -94,6 +97,17 @@ export default function AdminInvite() {
       setResendingId(null);
     }
   };
+
+  const handleRevoke = async (inv: Invitation) => {
+    if (!confirm(`Révoquer l'invitation de ${inv.email} ?`)) return;
+    try {
+      const res = await fetch(`/api/admin/invitations/${inv.id}/revoke`, { method: "POST" });
+      if (!res.ok) throw new Error("Échec");
+      loadHistory();
+    } catch { /* ignore */ }
+  };
+
+  const acceptedCount = invitations.filter((i) => i.acceptedAt).length;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -233,7 +247,7 @@ export default function AdminInvite() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-white">Historique</h2>
-                    <p className="text-xs text-muted-foreground">{invitations.length} invitation{invitations.length !== 1 ? "s" : ""}</p>
+                    <p className="text-xs text-muted-foreground">{invitations.length} invitation{invitations.length !== 1 ? "s" : ""} · {acceptedCount} acceptée{acceptedCount !== 1 ? "s" : ""}</p>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white"
@@ -290,21 +304,41 @@ export default function AdminInvite() {
                               })}
                             </span>
                           </div>
+                          {inv.acceptedAt && (
+                            <p className="mt-1 truncate text-xs text-green-400">✓ Accepté{inv.acceptedByEmail ? ` — ${inv.acceptedByEmail}` : ""}</p>
+                          )}
+                          {inv.revoked && !inv.acceptedAt && (
+                            <p className="mt-1 text-xs text-muted-foreground">Révoquée</p>
+                          )}
                           {inv.message && (
                             <p className="text-xs text-muted-foreground/80 mt-1 truncate italic">"{inv.message}"</p>
                           )}
                         </div>
-                        <Button
-                          variant="ghost" size="sm"
-                          className="h-7 text-xs text-muted-foreground hover:text-white flex-shrink-0"
-                          onClick={() => handleResend(inv)}
-                          disabled={resendingId === inv.id}
-                        >
-                          {resendingId === inv.id
-                            ? <span className="h-3 w-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                            : <RefreshCw className="h-3 w-3" />}
-                          <span className="ml-1">Renvoyer</span>
-                        </Button>
+                        <div className="flex flex-shrink-0 items-center gap-1">
+                          {!inv.acceptedAt && !inv.revoked && (
+                            <Button
+                              variant="ghost" size="sm"
+                              className="h-7 text-xs text-muted-foreground hover:text-white"
+                              onClick={() => handleResend(inv)}
+                              disabled={resendingId === inv.id}
+                            >
+                              {resendingId === inv.id
+                                ? <span className="h-3 w-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                : <RefreshCw className="h-3 w-3" />}
+                              <span className="ml-1">Renvoyer</span>
+                            </Button>
+                          )}
+                          {!inv.acceptedAt && !inv.revoked && (
+                            <Button
+                              variant="ghost" size="sm"
+                              className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                              onClick={() => handleRevoke(inv)}
+                            >
+                              <XCircle className="h-3 w-3" />
+                              <span className="ml-1">Révoquer</span>
+                            </Button>
+                          )}
+                        </div>
                       </motion.div>
                     ))}
                   </AnimatePresence>

@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Trash2, Plus, ChevronDown, ChevronRight, ChevronLeft, Film, Tv, Star, Search, ArrowUpDown } from "lucide-react";
+import { Edit, Trash2, Plus, ChevronDown, ChevronRight, ChevronLeft, Film, Tv, Star, Search, ArrowUpDown, Eye, EyeOff } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "@/components/admin/admin-ui";
@@ -42,6 +42,7 @@ interface ContentForm {
   originalLanguage: string;
   country: string;
   isFeatured: boolean;
+  isPublished: boolean;
 }
 
 const emptyForm: ContentForm = {
@@ -50,12 +51,12 @@ const emptyForm: ContentForm = {
   backdropUrl: "", videoUrl: "",
   maturityRating: "", cast: "", director: "", tagline: "", trailerUrl: "",
   originalLanguage: "", country: "",
-  isFeatured: false,
+  isFeatured: false, isPublished: true,
 };
 
 export default function AdminContent() {
   const queryClient = useQueryClient();
-  const { data: content, isLoading, refetch } = useListContent({ limit: 100 });
+  const { data: content, isLoading, refetch } = useListContent({ limit: 100, all: true });
   const { data: categories } = useListCategories();
   const createContent = useCreateContent();
   const updateContent = useUpdateContent();
@@ -139,6 +140,7 @@ export default function AdminContent() {
       trailerUrl: item.trailerUrl || "", originalLanguage: item.originalLanguage || "",
       country: item.country || "",
       isFeatured: item.isFeatured || false,
+      isPublished: item.isPublished ?? true,
     });
     setEditingId(item.id);
     setModalOpen(true);
@@ -160,6 +162,7 @@ export default function AdminContent() {
       trailerUrl: form.trailerUrl || undefined, originalLanguage: form.originalLanguage || undefined,
       country: form.country || undefined,
       isFeatured: form.isFeatured,
+      isPublished: form.isPublished,
     };
     if (editingId) {
       updateContent.mutate({ id: editingId, data: payload as any }, { onSuccess: () => { setModalOpen(false); refetch(); } });
@@ -390,6 +393,11 @@ export default function AdminContent() {
                                 {item.maturityRating}
                               </span>
                             )}
+                            {item.isPublished === false && (
+                              <span className="ml-2 text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-1.5 py-0.5 rounded">
+                                Brouillon
+                              </span>
+                            )}
                           </div>
                         </div>
                       </TableCell>
@@ -412,6 +420,11 @@ export default function AdminContent() {
                       <TableCell className="text-gray-300 text-sm">{item.viewCount.toLocaleString("fr-FR")}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-white/5 h-8 w-8 transition-colors"
+                            title={item.isPublished === false ? "Publier" : "Mettre en brouillon"}
+                            onClick={() => updateContent.mutate({ id: item.id, data: { isPublished: !item.isPublished } as any }, { onSuccess: () => refetch() })}>
+                            {item.isPublished === false ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
                           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-white/5 h-8 w-8 transition-colors" onClick={() => openEdit(item)}>
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -626,6 +639,15 @@ export default function AdminContent() {
                   className="h-4 w-4 rounded border-white/10 accent-primary" />
                 <Label htmlFor="featured" className="text-white font-medium cursor-pointer">
                   Mettre à la une (affichée dans le hero)
+                </Label>
+              </div>
+
+              <div className="col-span-2 flex items-center gap-3 rounded-xl border border-white/10 bg-secondary/30 p-3">
+                <input type="checkbox" id="published" checked={form.isPublished}
+                  onChange={(e) => setForm(prev => ({ ...prev, isPublished: e.target.checked }))}
+                  className="h-4 w-4 rounded border-white/10 accent-primary" />
+                <Label htmlFor="published" className="text-white font-medium cursor-pointer">
+                  Publié (visible sur le site — décoche pour en faire un brouillon)
                 </Label>
               </div>
             </div>

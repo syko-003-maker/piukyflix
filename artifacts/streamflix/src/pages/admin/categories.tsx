@@ -11,8 +11,8 @@ import { Edit, Trash2, Plus, FolderTree } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "@/components/admin/admin-ui";
 
-interface CatForm { name: string; description: string; }
-const emptyForm: CatForm = { name: "", description: "" };
+interface CatForm { name: string; description: string; icon: string; color: string; }
+const emptyForm: CatForm = { name: "", description: "", icon: "", color: "#a855f7" };
 
 export default function AdminCategories() {
   const { data: categories, isLoading, refetch } = useListCategories();
@@ -26,14 +26,14 @@ export default function AdminCategories() {
 
   const openAdd = () => { setForm(emptyForm); setEditingId(null); setModalOpen(true); };
   const openEdit = (cat: any) => {
-    setForm({ name: cat.name || "", description: cat.description || "" });
+    setForm({ name: cat.name || "", description: cat.description || "", icon: cat.icon || "", color: cat.color || "#a855f7" });
     setEditingId(cat.id);
     setModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { name: form.name, description: form.description || undefined };
+    const payload = { name: form.name, description: form.description || undefined, icon: form.icon || undefined, color: form.color || undefined };
     if (editingId) {
       updateCategory.mutate({ id: editingId, data: payload }, { onSuccess: () => { setModalOpen(false); refetch(); } });
     } else {
@@ -98,7 +98,16 @@ export default function AdminCategories() {
                     className="border-b border-white/10 transition-colors hover:bg-secondary/30"
                   >
                     <TableCell className="font-medium text-muted-foreground text-xs">{cat.id}</TableCell>
-                    <TableCell className="font-bold text-white">{cat.name}</TableCell>
+                    <TableCell className="font-bold text-white">
+                      <span className="flex items-center gap-2">
+                        {cat.color && <span className="h-3 w-3 rounded-full" style={{ background: cat.color }} />}
+                        {cat.icon && <span>{cat.icon}</span>}
+                        {cat.name}
+                        <span className="ml-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {cat.contentCount ?? 0} contenu{(cat.contentCount ?? 0) > 1 ? "s" : ""}
+                        </span>
+                      </span>
+                    </TableCell>
                     <TableCell className="text-gray-300 text-sm max-w-xs truncate">{cat.description || "—"}</TableCell>
                     <TableCell className="text-gray-300 text-sm">{new Date(cat.createdAt).toLocaleDateString("fr-FR")}</TableCell>
                     <TableCell className="text-right">
@@ -157,6 +166,26 @@ export default function AdminCategories() {
                     onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                     placeholder="Description optionnelle…" rows={3}
                     className="resize-none bg-secondary/50 border-white/10 text-white transition-colors focus-visible:border-primary/50" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-white font-medium">Icône (emoji)</Label>
+                    <Input value={form.icon} maxLength={4}
+                      onChange={e => setForm(p => ({ ...p, icon: e.target.value }))}
+                      placeholder="🎬" className="bg-secondary/50 border-white/10 text-white text-center text-lg" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-white font-medium">Couleur</Label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={form.color}
+                        onChange={e => setForm(p => ({ ...p, color: e.target.value }))}
+                        className="h-9 w-12 cursor-pointer rounded border border-white/10 bg-secondary/50" />
+                      <Input value={form.color}
+                        onChange={e => setForm(p => ({ ...p, color: e.target.value }))}
+                        placeholder="#a855f7" className="flex-1 bg-secondary/50 border-white/10 text-white" />
+                    </div>
+                  </div>
                 </div>
 
                 <DialogFooter className="pt-2">

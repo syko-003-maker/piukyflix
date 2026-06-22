@@ -16,6 +16,7 @@ import Watch from "@/pages/watch";
 import Search from "@/pages/search";
 import Favorites from "@/pages/favorites";
 import History from "@/pages/history";
+import Requests from "@/pages/requests";
 
 import AdminDashboard from "@/pages/admin/index";
 import AdminContent from "@/pages/admin/content";
@@ -200,6 +201,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/search"><Protected component={Search} /></Route>
           <Route path="/favorites"><Protected component={Favorites} /></Route>
           <Route path="/history"><Protected component={History} /></Route>
+          <Route path="/requests"><Protected component={Requests} /></Route>
           
           {/* Admin Routes */}
           <Route path="/admin">

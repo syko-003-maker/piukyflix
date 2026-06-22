@@ -52,6 +52,9 @@ export function Navbar() {
               <Link href="/history" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
                 Historique
               </Link>
+              <Link href="/requests" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+                Demandes
+              </Link>
               {isAdmin && (
                 <Link href="/admin">
                   <span className="flex items-center gap-1.5 text-sm font-semibold text-primary border border-primary/40 bg-primary/10 hover:bg-primary/20 px-3 py-1 rounded-md transition-colors">

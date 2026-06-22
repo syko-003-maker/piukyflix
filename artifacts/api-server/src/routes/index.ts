@@ -11,6 +11,7 @@ import storageRouter from "./storage";
 import tmdbRouter from "./tmdb";
 import uploadRouter from "./upload";
 import adsRouter from "./ads";
+import requestsRouter from "./requests";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(storageRouter);
 router.use(tmdbRouter);
 router.use(uploadRouter);
 router.use(adsRouter);
+router.use(requestsRouter);
 
 export default router;

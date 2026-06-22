@@ -15,6 +15,14 @@ export interface TmdbContent {
   posterUrl: string | null;
   backdropUrl: string | null;
   genre: string | null;
+  tagline: string | null;
+  originalLanguage: string | null;
+  cast: string | null;
+  director: string | null;
+  trailerUrl: string | null;
+  country: string | null;
+  maturityRating: string | null;
+  tmdbId: number | null;
 }
 
 async function readError(res: Response): Promise<string> {

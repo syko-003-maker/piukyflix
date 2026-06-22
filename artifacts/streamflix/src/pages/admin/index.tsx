@@ -2,9 +2,9 @@ import { useGetAdminStats } from "@workspace/api-client-react";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { StatCard, Reveal } from "@/components/admin/admin-ui";
 import { motion } from "framer-motion";
-import { Users, Film, Tv, FolderTree, PlayCircle, MessageSquare, TrendingUp, Activity } from "lucide-react";
+import { Users, Film, Tv, FolderTree, PlayCircle, MessageSquare, TrendingUp, Activity, Percent, UserCheck, Clock, Heart, Star } from "lucide-react";
 import {
-  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area,
 } from "recharts";
 
 const PIE_COLORS = ["hsl(357 92% 47%)", "#6366f1"];
@@ -28,6 +28,11 @@ export default function AdminDashboard() {
   const topData = stats
     ? stats.topContent.slice(0, 5).map((c) => ({ name: c.title, views: c.viewCount }))
     : [];
+  const signupData = stats?.signupsByDay?.map((s) => ({ day: s.day.slice(5), count: s.count })) ?? [];
+  const ratingData = [1, 2, 3, 4, 5].map((score) => ({
+    name: `${score}★`,
+    count: stats?.ratingsDistribution?.find((r) => r.score === score)?.count ?? 0,
+  }));
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -57,6 +62,13 @@ export default function AdminDashboard() {
               <StatCard title="Catégories" value={stats.totalCategories} accent="yellow" delay={0.15} icon={<FolderTree className="h-6 w-6" />} />
               <StatCard title="Visionnages" value={stats.totalWatchEvents} accent="purple" delay={0.2} icon={<PlayCircle className="h-6 w-6" />} />
               <StatCard title="Commentaires" value={stats.totalComments} accent="pink" delay={0.25} icon={<MessageSquare className="h-6 w-6" />} />
+            </div>
+
+            {/* Engagement */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              <StatCard title="Taux de complétion (%)" value={stats.completionRate} accent="green" delay={0} icon={<Percent className="h-6 w-6" />} />
+              <StatCard title="Actifs (7 jours)" value={stats.activeUsers7d} accent="blue" delay={0.05} icon={<UserCheck className="h-6 w-6" />} />
+              <StatCard title="Heures visionnées" value={stats.totalHoursWatched} accent="purple" delay={0.1} icon={<Clock className="h-6 w-6" />} />
             </div>
 
             {/* Charts */}
@@ -125,6 +137,57 @@ export default function AdminDashboard() {
                     ) : (
                       <div className="flex h-full items-center justify-center text-muted-foreground">Aucune donnée</div>
                     )}
+                  </div>
+                </div>
+              </Reveal>
+            </div>
+
+            {/* Inscriptions + notes */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Reveal delay={0.1}>
+                <div className="h-full rounded-2xl border border-white/10 bg-card p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
+                    <TrendingUp className="h-5 w-5 text-primary" /> Inscriptions (14 jours)
+                  </h2>
+                  <div className="h-56">
+                    {signupData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={signupData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="signupFill" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="hsl(265 89% 66%)" stopOpacity={0.7} />
+                              <stop offset="100%" stopColor="hsl(265 89% 66%)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                          <XAxis dataKey="day" tick={{ fill: "#9ca3af", fontSize: 11 }} tickLine={false} axisLine={false} />
+                          <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                          <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: "rgba(255,255,255,0.1)" }} />
+                          <Area type="monotone" dataKey="count" name="Inscriptions" stroke="hsl(265 89% 66%)" strokeWidth={2} fill="url(#signupFill)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground">Aucune inscription récente</div>
+                    )}
+                  </div>
+                </div>
+              </Reveal>
+
+              <Reveal delay={0.15}>
+                <div className="h-full rounded-2xl border border-white/10 bg-card p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
+                    <Star className="h-5 w-5 text-yellow-400" /> Répartition des notes
+                  </h2>
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={ratingData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fill: "#9ca3af", fontSize: 11 }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                        <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                        <Bar dataKey="count" name="Notes" radius={[6, 6, 0, 0]} fill="hsl(48 96% 53%)" />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </Reveal>
@@ -207,6 +270,64 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </Reveal>
+            </div>
+
+            {/* Genres + favoris */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Reveal delay={0.1}>
+                <div className="rounded-2xl border border-white/10 bg-card p-6">
+                  <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-white">
+                    <TrendingUp className="h-5 w-5 text-primary" /> Performance par genre
+                  </h2>
+                  <div className="space-y-3">
+                    {stats.genrePerformance.map((g, i) => {
+                      const max = stats.genrePerformance[0]?.views || 1;
+                      const pct = Math.max(4, Math.round((g.views / max) * 100));
+                      return (
+                        <div key={i} className="flex items-center gap-3">
+                          <span className="w-28 truncate text-sm text-white">{g.genre || "—"}</span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-secondary">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="w-20 text-right text-xs text-muted-foreground">{g.views.toLocaleString("fr-FR")} vues</span>
+                        </div>
+                      );
+                    })}
+                    {stats.genrePerformance.length === 0 && <p className="py-4 text-center text-muted-foreground">Aucune donnée</p>}
+                  </div>
+                </div>
+              </Reveal>
+
+              <Reveal delay={0.15}>
+                <div className="rounded-2xl border border-white/10 bg-card p-6">
+                  <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-white">
+                    <Heart className="h-5 w-5 text-pink-400" /> Les plus ajoutés en favoris
+                  </h2>
+                  <div className="space-y-4">
+                    {stats.mostFavorited.map((c, index) => (
+                      <div key={c.id} className="flex items-center gap-4">
+                        <div className="w-6 text-xl font-bold text-muted-foreground">{index + 1}</div>
+                        <div className="h-14 w-10 flex-shrink-0 overflow-hidden rounded bg-secondary">
+                          {c.posterUrl && <img src={c.posterUrl} alt={c.title} className="h-full w-full object-cover" />}
+                        </div>
+                        <h4 className="min-w-0 flex-1 truncate font-bold text-white">{c.title}</h4>
+                        <div className="flex items-center gap-1 text-pink-400">
+                          <Heart className="h-4 w-4 fill-current" />
+                          <span className="font-bold">{c.favorites}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {stats.mostFavorited.length === 0 && <p className="py-4 text-center text-muted-foreground">Aucun favori</p>}
+                  </div>
+                </div>
+              </Reveal>
+            </div>
+
+            {/* Répartition des rôles */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              <StatCard title="Utilisateurs" value={stats.usersByRole.user} accent="blue" delay={0} icon={<Users className="h-6 w-6" />} />
+              <StatCard title="Modérateurs" value={stats.usersByRole.moderator} accent="yellow" delay={0.05} icon={<UserCheck className="h-6 w-6" />} />
+              <StatCard title="Admins" value={stats.usersByRole.admin} accent="red" delay={0.1} icon={<Users className="h-6 w-6" />} />
             </div>
           </div>
         ) : null}

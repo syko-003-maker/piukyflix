@@ -1,8 +1,8 @@
 import { useState } from "react";
 import {
   useListContent, useCreateContent, useUpdateContent, useDeleteContent,
-  useListCategories, useListSeasons, useCreateSeason, useDeleteSeason,
-  useListEpisodes, useCreateEpisode, useDeleteEpisode,
+  useListCategories, useListSeasons, useCreateSeason, useUpdateSeason, useDeleteSeason,
+  useListEpisodes, useCreateEpisode, useUpdateEpisode, useDeleteEpisode,
   getListSeasonsQueryKey, getListEpisodesQueryKey
 } from "@workspace/api-client-react";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Trash2, Plus, ChevronDown, ChevronRight, Film, Tv, Star } from "lucide-react";
+import { Edit, Trash2, Plus, ChevronDown, ChevronRight, ChevronLeft, Film, Tv, Star, Search, ArrowUpDown } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "@/components/admin/admin-ui";
@@ -34,13 +34,23 @@ interface ContentForm {
   posterUrl: string;
   backdropUrl: string;
   videoUrl: string;
+  maturityRating: string;
+  cast: string;
+  director: string;
+  tagline: string;
+  trailerUrl: string;
+  originalLanguage: string;
+  country: string;
   isFeatured: boolean;
 }
 
 const emptyForm: ContentForm = {
   title: "", description: "", contentType: "movie", categoryId: "",
   genre: "", releaseYear: "", durationMinutes: "", posterUrl: "",
-  backdropUrl: "", videoUrl: "", isFeatured: false,
+  backdropUrl: "", videoUrl: "",
+  maturityRating: "", cast: "", director: "", tagline: "", trailerUrl: "",
+  originalLanguage: "", country: "",
+  isFeatured: false,
 };
 
 export default function AdminContent() {
@@ -58,6 +68,63 @@ export default function AdminContent() {
   const [importingId, setImportingId] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
+  // Table UX: search, sort, pagination, bulk selection (all client-side over the loaded list)
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<"id" | "title" | "year" | "rating" | "views">("id");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(0);
+  const pageSize = 15;
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [bulkCategory, setBulkCategory] = useState("");
+
+  const allItems: any[] = content?.items ?? [];
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? allItems.filter((it) =>
+        it.title.toLowerCase().includes(q) ||
+        (it.genre || "").toLowerCase().includes(q) ||
+        (it.categoryName || "").toLowerCase().includes(q))
+    : allItems;
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortKey === "title") return a.title.localeCompare(b.title) * dir;
+    if (sortKey === "year") return ((a.releaseYear || 0) - (b.releaseYear || 0)) * dir;
+    if (sortKey === "rating") return ((a.averageRating || 0) - (b.averageRating || 0)) * dir;
+    if (sortKey === "views") return ((a.viewCount || 0) - (b.viewCount || 0)) * dir;
+    return (a.id - b.id) * dir;
+  });
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const safePage = Math.min(page, pageCount - 1);
+  const pageItems = sorted.slice(safePage * pageSize, safePage * pageSize + pageSize);
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir(key === "title" ? "asc" : "desc"); }
+  };
+  const toggleSelect = (id: number) =>
+    setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const allOnPageSelected = pageItems.length > 0 && pageItems.every((it) => selected.has(it.id));
+  const toggleSelectAll = () =>
+    setSelected((prev) => {
+      const n = new Set(prev);
+      if (allOnPageSelected) pageItems.forEach((it) => n.delete(it.id));
+      else pageItems.forEach((it) => n.add(it.id));
+      return n;
+    });
+  const bulkDelete = async () => {
+    if (!confirm(`Supprimer ${selected.size} contenu(s) ?`)) return;
+    await Promise.all([...selected].map((id) => deleteContent.mutateAsync({ id })));
+    setSelected(new Set());
+    refetch();
+  };
+  const applyBulkCategory = async () => {
+    if (!bulkCategory) return;
+    await Promise.all([...selected].map((id) => updateContent.mutateAsync({ id, data: { categoryId: Number(bulkCategory) } as any })));
+    setSelected(new Set());
+    setBulkCategory("");
+    refetch();
+  };
+
   const openAdd = () => { setForm(emptyForm); setEditingId(null); setModalOpen(true); };
   const openEdit = (item: any) => {
     setForm({
@@ -66,7 +133,12 @@ export default function AdminContent() {
       genre: item.genre || "", releaseYear: item.releaseYear?.toString() || "",
       durationMinutes: item.durationMinutes?.toString() || "",
       posterUrl: item.posterUrl || "", backdropUrl: item.backdropUrl || "",
-      videoUrl: item.videoUrl || "", isFeatured: item.isFeatured || false,
+      videoUrl: item.videoUrl || "",
+      maturityRating: item.maturityRating || "", cast: item.cast || "",
+      director: item.director || "", tagline: item.tagline || "",
+      trailerUrl: item.trailerUrl || "", originalLanguage: item.originalLanguage || "",
+      country: item.country || "",
+      isFeatured: item.isFeatured || false,
     });
     setEditingId(item.id);
     setModalOpen(true);
@@ -82,7 +154,12 @@ export default function AdminContent() {
       releaseYear: form.releaseYear ? Number(form.releaseYear) : undefined,
       durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
       posterUrl: form.posterUrl || undefined, backdropUrl: form.backdropUrl || undefined,
-      videoUrl: form.videoUrl || undefined, isFeatured: form.isFeatured,
+      videoUrl: form.videoUrl || undefined,
+      maturityRating: form.maturityRating || undefined, cast: form.cast || undefined,
+      director: form.director || undefined, tagline: form.tagline || undefined,
+      trailerUrl: form.trailerUrl || undefined, originalLanguage: form.originalLanguage || undefined,
+      country: form.country || undefined,
+      isFeatured: form.isFeatured,
     };
     if (editingId) {
       updateContent.mutate({ id: editingId, data: payload as any }, { onSuccess: () => { setModalOpen(false); refetch(); } });
@@ -112,6 +189,14 @@ export default function AdminContent() {
             posterUrl: d.posterUrl ?? undefined,
             backdropUrl: d.backdropUrl ?? undefined,
             genre: d.genre ?? undefined,
+            tagline: d.tagline ?? undefined,
+            originalLanguage: d.originalLanguage ?? undefined,
+            cast: d.cast ?? undefined,
+            director: d.director ?? undefined,
+            trailerUrl: d.trailerUrl ?? undefined,
+            country: d.country ?? undefined,
+            maturityRating: d.maturityRating ?? undefined,
+            tmdbId: d.tmdbId ?? undefined,
           } as any,
         },
         {
@@ -152,6 +237,50 @@ export default function AdminContent() {
           </div>
         </Reveal>
 
+        <Reveal delay={0.04}>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="relative min-w-[240px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                placeholder="Rechercher un titre, genre, catégorie…"
+                className="bg-secondary/50 border-white/10 pl-9 text-white focus-visible:ring-primary" />
+            </div>
+            <span className="text-sm text-muted-foreground">{sorted.length} résultat{sorted.length > 1 ? "s" : ""}</span>
+          </div>
+        </Reveal>
+
+        <AnimatePresence>
+          {selected.size > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5"
+            >
+              <span className="text-sm font-medium text-white">{selected.size} sélectionné(s)</span>
+              <div className="flex items-center gap-2">
+                <Select value={bulkCategory || "none"} onValueChange={(v) => setBulkCategory(v === "none" ? "" : v)}>
+                  <SelectTrigger className="h-8 w-48 bg-secondary border-white/10 text-white text-xs">
+                    <SelectValue placeholder="Changer la catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Choisir une catégorie —</SelectItem>
+                    {categories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" className="h-8 border-white/10 text-xs text-white hover:bg-secondary"
+                  disabled={!bulkCategory} onClick={applyBulkCategory}>Appliquer</Button>
+              </div>
+              <Button size="sm" variant="ghost" className="ml-auto h-8 text-xs text-destructive hover:bg-destructive/10"
+                onClick={bulkDelete}>
+                <Trash2 className="mr-1 h-3.5 w-3.5" /> Supprimer
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground"
+                onClick={() => setSelected(new Set())}>Désélectionner</Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <Reveal delay={0.05}>
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -171,31 +300,55 @@ export default function AdminContent() {
             <Table>
               <TableHeader className="bg-secondary/50">
                 <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-muted-foreground w-8">
+                    <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll}
+                      className="h-3.5 w-3.5 rounded border-white/10 accent-primary align-middle" />
+                  </TableHead>
                   <TableHead className="text-muted-foreground w-10"></TableHead>
                   <TableHead className="text-muted-foreground w-14">ID</TableHead>
-                  <TableHead className="text-muted-foreground">Titre</TableHead>
+                  <TableHead className="text-muted-foreground">
+                    <button className="flex items-center gap-1 transition-colors hover:text-white" onClick={() => toggleSort("title")}>
+                      Titre <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </TableHead>
                   <TableHead className="text-muted-foreground">Type</TableHead>
                   <TableHead className="text-muted-foreground">Catégorie</TableHead>
-                  <TableHead className="text-muted-foreground">Année</TableHead>
-                  <TableHead className="text-muted-foreground">Note</TableHead>
-                  <TableHead className="text-muted-foreground">Vues</TableHead>
+                  <TableHead className="text-muted-foreground">
+                    <button className="flex items-center gap-1 transition-colors hover:text-white" onClick={() => toggleSort("year")}>
+                      Année <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-muted-foreground">
+                    <button className="flex items-center gap-1 transition-colors hover:text-white" onClick={() => toggleSort("rating")}>
+                      Note <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-muted-foreground">
+                    <button className="flex items-center gap-1 transition-colors hover:text-white" onClick={() => toggleSort("views")}>
+                      Vues <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </TableHead>
                   <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Chargement…</TableCell>
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Chargement…</TableCell>
                   </TableRow>
-                ) : content?.items.map((item, i) => (
+                ) : pageItems.map((item: any, i: number) => (
                   <>
                     <motion.tr
                       key={item.id}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: Math.min(i * 0.04, 0.4), ease: [0.16, 1, 0.3, 1] }}
-                      className="border-b border-white/10 transition-colors hover:bg-secondary/30 data-[state=selected]:bg-muted"
+                      className={`border-b border-white/10 transition-colors hover:bg-secondary/30 ${selected.has(item.id) ? "bg-primary/5" : ""}`}
                     >
+                      <TableCell>
+                        <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleSelect(item.id)}
+                          className="h-3.5 w-3.5 rounded border-white/10 accent-primary align-middle" />
+                      </TableCell>
                       <TableCell>
                         {item.contentType === "series" && (
                           <button
@@ -223,6 +376,11 @@ export default function AdminContent() {
                             {item.isFeatured && (
                               <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded">
                                 À la une
+                              </span>
+                            )}
+                            {item.maturityRating && (
+                              <span className="ml-2 text-xs bg-secondary text-gray-300 border border-white/15 px-1.5 py-0.5 rounded">
+                                {item.maturityRating}
                               </span>
                             )}
                           </div>
@@ -267,7 +425,7 @@ export default function AdminContent() {
                           transition={{ duration: 0.2 }}
                           className="border-b border-white/10 bg-secondary/10"
                         >
-                          <TableCell colSpan={9} className="p-0">
+                          <TableCell colSpan={10} className="p-0">
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: "auto", opacity: 1 }}
@@ -283,15 +441,31 @@ export default function AdminContent() {
                     </AnimatePresence>
                   </>
                 ))}
-                {content?.items.length === 0 && (
+                {!isLoading && sorted.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Aucun contenu trouvé</TableCell>
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Aucun contenu trouvé</TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
         </Reveal>
+
+        {pageCount > 1 && (
+          <div className="mt-4 flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Page {safePage + 1} / {pageCount}</span>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="h-8 border-white/10 text-xs text-white hover:bg-secondary"
+                disabled={safePage <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                <ChevronLeft className="mr-1 h-4 w-4" /> Précédent
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 border-white/10 text-xs text-white hover:bg-secondary"
+                disabled={safePage >= pageCount - 1} onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}>
+                Suivant <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Modal Add/Edit */}
@@ -371,6 +545,48 @@ export default function AdminContent() {
                   className="resize-none bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
               </div>
 
+              <div className="space-y-1.5">
+                <Label className="text-white font-medium">Classification (âge)</Label>
+                <Input value={form.maturityRating} onChange={f("maturityRating")}
+                  placeholder="ex: PG-13, TV-MA, 16…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-white font-medium">Réalisateur</Label>
+                <Input value={form.director} onChange={f("director")}
+                  placeholder="Nom du réalisateur" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-white font-medium">Langue d'origine</Label>
+                <Input value={form.originalLanguage} onChange={f("originalLanguage")}
+                  placeholder="ex: en, fr, ja…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-white font-medium">Pays</Label>
+                <Input value={form.country} onChange={f("country")}
+                  placeholder="Pays d'origine" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+              </div>
+
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-white font-medium">Casting</Label>
+                <Input value={form.cast} onChange={f("cast")}
+                  placeholder="Acteurs séparés par des virgules" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+              </div>
+
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-white font-medium">Accroche (tagline)</Label>
+                <Input value={form.tagline} onChange={f("tagline")}
+                  placeholder="Phrase d'accroche" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+              </div>
+
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-white font-medium">Bande-annonce (YouTube)</Label>
+                <Input value={form.trailerUrl} onChange={f("trailerUrl")}
+                  placeholder="https://www.youtube.com/watch?v=…" className="bg-secondary/50 border-white/10 text-white focus-visible:ring-primary" />
+              </div>
+
               <div className="col-span-2 space-y-1.5">
                 <Label className="text-white font-medium">Affiche (poster)</Label>
                 <FileDrop value={form.posterUrl} accept="image/*" hint="Glisse une image ici ou clique"
@@ -425,23 +641,42 @@ export default function AdminContent() {
 }
 
 function SeasonsPanel({ contentId }: { contentId: number }) {
-  const queryClient = useQueryClient();
   const { data: seasons, refetch: refetchSeasons } = useListSeasons(contentId, {
     query: { queryKey: getListSeasonsQueryKey(contentId) }
   });
   const createSeason = useCreateSeason();
+  const updateSeason = useUpdateSeason();
   const deleteSeason = useDeleteSeason();
   const [expandedSeason, setExpandedSeason] = useState<number | null>(null);
   const [addingSeason, setAddingSeason] = useState(false);
-  const [seasonForm, setSeasonForm] = useState({ seasonNumber: "", title: "" });
+  const [editingSeason, setEditingSeason] = useState<number | null>(null);
+  const [seasonForm, setSeasonForm] = useState({ seasonNumber: "", title: "", description: "" });
+
+  const resetSeasonForm = () => setSeasonForm({ seasonNumber: "", title: "", description: "" });
 
   const handleAddSeason = (e: React.FormEvent) => {
     e.preventDefault();
     createSeason.mutate({
       contentId,
-      data: { seasonNumber: Number(seasonForm.seasonNumber), title: seasonForm.title || undefined } as any
+      data: { seasonNumber: Number(seasonForm.seasonNumber), title: seasonForm.title || undefined, description: seasonForm.description || undefined } as any
     }, {
-      onSuccess: () => { refetchSeasons(); setAddingSeason(false); setSeasonForm({ seasonNumber: "", title: "" }); }
+      onSuccess: () => { refetchSeasons(); setAddingSeason(false); resetSeasonForm(); }
+    });
+  };
+
+  const openEditSeason = (season: any) => {
+    setSeasonForm({ seasonNumber: String(season.seasonNumber ?? ""), title: season.title || "", description: season.description || "" });
+    setAddingSeason(false);
+    setEditingSeason(season.id);
+  };
+
+  const handleEditSeason = (e: React.FormEvent, seasonId: number) => {
+    e.preventDefault();
+    updateSeason.mutate({
+      seasonId,
+      data: { seasonNumber: Number(seasonForm.seasonNumber), title: seasonForm.title || undefined, description: seasonForm.description || undefined } as any
+    }, {
+      onSuccess: () => { refetchSeasons(); setEditingSeason(null); resetSeasonForm(); }
     });
   };
 
@@ -451,43 +686,55 @@ function SeasonsPanel({ contentId }: { contentId: number }) {
     }
   };
 
+  const seasonFields = (onSubmit: (e: React.FormEvent) => void, submitLabel: string, onCancel: () => void) => (
+    <motion.form
+      onSubmit={onSubmit}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      className="mb-4 space-y-2 p-3 bg-secondary/30 rounded-xl border border-white/10 overflow-hidden"
+    >
+      <div className="flex items-end gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">N° saison</Label>
+          <Input type="number" required value={seasonForm.seasonNumber}
+            onChange={e => setSeasonForm(p => ({ ...p, seasonNumber: e.target.value }))}
+            className="h-8 w-24 bg-secondary border-white/10 text-white text-sm" placeholder="1" />
+        </div>
+        <div className="flex-1 space-y-1">
+          <Label className="text-xs text-muted-foreground">Titre (optionnel)</Label>
+          <Input value={seasonForm.title}
+            onChange={e => setSeasonForm(p => ({ ...p, title: e.target.value }))}
+            className="h-8 bg-secondary border-white/10 text-white text-sm" placeholder="Titre de la saison" />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Description (optionnel)</Label>
+        <Textarea value={seasonForm.description}
+          onChange={e => setSeasonForm(p => ({ ...p, description: e.target.value }))}
+          rows={2} className="resize-none bg-secondary border-white/10 text-white text-sm" placeholder="Résumé de la saison" />
+      </div>
+      <div className="flex items-center gap-2">
+        <Button type="submit" size="sm" className="h-8 bg-primary text-white text-xs">{submitLabel}</Button>
+        <Button type="button" size="sm" variant="ghost" className="h-8 text-muted-foreground text-xs"
+          onClick={onCancel}>Annuler</Button>
+      </div>
+    </motion.form>
+  );
+
   return (
     <div className="px-8 py-4 bg-secondary/5 border-t border-white/10">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-white">Saisons</h3>
         <Button size="sm" variant="outline" className="h-7 text-xs border-white/10 text-white hover:bg-secondary transition-colors"
-          onClick={() => setAddingSeason(true)}>
+          onClick={() => { resetSeasonForm(); setEditingSeason(null); setAddingSeason(true); }}>
           <Plus className="h-3 w-3 mr-1" /> Ajouter une saison
         </Button>
       </div>
 
       <AnimatePresence initial={false}>
-        {addingSeason && (
-          <motion.form
-            onSubmit={handleAddSeason}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-end gap-3 mb-4 p-3 bg-secondary/30 rounded-xl border border-white/10 overflow-hidden"
-          >
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">N° saison</Label>
-              <Input type="number" required value={seasonForm.seasonNumber}
-                onChange={e => setSeasonForm(p => ({ ...p, seasonNumber: e.target.value }))}
-                className="h-8 w-24 bg-secondary border-white/10 text-white text-sm" placeholder="1" />
-            </div>
-            <div className="flex-1 space-y-1">
-              <Label className="text-xs text-muted-foreground">Titre (optionnel)</Label>
-              <Input value={seasonForm.title}
-                onChange={e => setSeasonForm(p => ({ ...p, title: e.target.value }))}
-                className="h-8 bg-secondary border-white/10 text-white text-sm" placeholder="Titre de la saison" />
-            </div>
-            <Button type="submit" size="sm" className="h-8 bg-primary text-white text-xs">Créer</Button>
-            <Button type="button" size="sm" variant="ghost" className="h-8 text-muted-foreground text-xs"
-              onClick={() => setAddingSeason(false)}>Annuler</Button>
-          </motion.form>
-        )}
+        {addingSeason && seasonFields(handleAddSeason, "Créer", () => { setAddingSeason(false); resetSeasonForm(); })}
       </AnimatePresence>
 
       <div className="space-y-2">
@@ -509,11 +756,22 @@ function SeasonsPanel({ contentId }: { contentId: number }) {
                   Saison {season.seasonNumber}{season.title ? ` — ${season.title}` : ""}
                 </span>
               </button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                onClick={() => handleDeleteSeason(season.id)}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+                  onClick={() => openEditSeason(season)}>
+                  <Edit className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  onClick={() => handleDeleteSeason(season.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
+            {editingSeason === season.id && (
+              <div className="px-4 pt-3">
+                {seasonFields((e) => handleEditSeason(e, season.id), "Enregistrer", () => { setEditingSeason(null); resetSeasonForm(); })}
+              </div>
+            )}
             <AnimatePresence initial={false}>
               {expandedSeason === season.id && (
                 <motion.div
@@ -539,27 +797,75 @@ function SeasonsPanel({ contentId }: { contentId: number }) {
   );
 }
 
+const emptyEp = { episodeNumber: "", title: "", description: "", videoUrl: "", thumbnailUrl: "", durationMinutes: "" };
+
 function EpisodesPanel({ seasonId }: { seasonId: number }) {
   const { data: episodes, refetch } = useListEpisodes(seasonId, {
     query: { queryKey: getListEpisodesQueryKey(seasonId) }
   });
   const createEpisode = useCreateEpisode();
+  const updateEpisode = useUpdateEpisode();
   const deleteEpisode = useDeleteEpisode();
   const [adding, setAdding] = useState(false);
-  const [epForm, setEpForm] = useState({ episodeNumber: "", title: "", videoUrl: "", durationMinutes: "" });
+  const [editingEp, setEditingEp] = useState<number | null>(null);
+  const [epForm, setEpForm] = useState({ ...emptyEp });
+
+  const epPayload = () => ({
+    episodeNumber: Number(epForm.episodeNumber),
+    title: epForm.title,
+    description: epForm.description || undefined,
+    videoUrl: epForm.videoUrl || undefined,
+    thumbnailUrl: epForm.thumbnailUrl || undefined,
+    durationMinutes: epForm.durationMinutes ? Number(epForm.durationMinutes) : undefined,
+  });
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    createEpisode.mutate({
-      seasonId,
-      data: {
-        episodeNumber: Number(epForm.episodeNumber),
-        title: epForm.title,
-        videoUrl: epForm.videoUrl || undefined,
-        durationMinutes: epForm.durationMinutes ? Number(epForm.durationMinutes) : undefined,
-      } as any
-    }, { onSuccess: () => { refetch(); setAdding(false); setEpForm({ episodeNumber: "", title: "", videoUrl: "", durationMinutes: "" }); } });
+    createEpisode.mutate({ seasonId, data: epPayload() as any },
+      { onSuccess: () => { refetch(); setAdding(false); setEpForm({ ...emptyEp }); } });
   };
+
+  const openEditEp = (ep: any) => {
+    setEpForm({
+      episodeNumber: String(ep.episodeNumber ?? ""), title: ep.title || "",
+      description: ep.description || "", videoUrl: ep.videoUrl || "",
+      thumbnailUrl: ep.thumbnailUrl || "", durationMinutes: ep.durationMinutes?.toString() || "",
+    });
+    setAdding(false);
+    setEditingEp(ep.id);
+  };
+
+  const handleEdit = (e: React.FormEvent, episodeId: number) => {
+    e.preventDefault();
+    updateEpisode.mutate({ episodeId, data: epPayload() as any },
+      { onSuccess: () => { refetch(); setEditingEp(null); setEpForm({ ...emptyEp }); } });
+  };
+
+  const epInputs = (
+    <>
+      <div className="flex items-center gap-2">
+        <Input type="number" required value={epForm.episodeNumber}
+          onChange={e => setEpForm(p => ({ ...p, episodeNumber: e.target.value }))}
+          placeholder="N°" className="h-7 w-[70px] text-xs bg-secondary border-white/10 text-white" />
+        <Input required value={epForm.title}
+          onChange={e => setEpForm(p => ({ ...p, title: e.target.value }))}
+          placeholder="Titre" className="h-7 flex-1 text-xs bg-secondary border-white/10 text-white" />
+        <Input type="number" value={epForm.durationMinutes}
+          onChange={e => setEpForm(p => ({ ...p, durationMinutes: e.target.value }))}
+          placeholder="min" className="h-7 w-[80px] text-xs bg-secondary border-white/10 text-white" />
+      </div>
+      <Textarea value={epForm.description}
+        onChange={e => setEpForm(p => ({ ...p, description: e.target.value }))}
+        rows={2} placeholder="Description (optionnel)" className="resize-none text-xs bg-secondary border-white/10 text-white" />
+      <FileDrop value={epForm.videoUrl} accept="video/*" hint="Glisse la vidéo de l'épisode ici ou clique"
+        onChange={(url) => setEpForm(p => ({ ...p, videoUrl: url }))} />
+      <Input value={epForm.videoUrl}
+        onChange={e => setEpForm(p => ({ ...p, videoUrl: e.target.value }))}
+        placeholder="…ou colle une URL vidéo (Drive, R2…)" className="h-7 text-xs bg-secondary border-white/10 text-white" />
+      <FileDrop value={epForm.thumbnailUrl} accept="image/*" hint="Miniature de l'épisode (optionnel)"
+        onChange={(url) => setEpForm(p => ({ ...p, thumbnailUrl: url }))} />
+    </>
+  );
 
   return (
     <div className="space-y-2">
@@ -571,15 +877,31 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
             transition={{ duration: 0.25, delay: Math.min(i * 0.03, 0.3), ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-secondary/20 transition-colors group"
           >
-            <span className="text-xs font-bold text-muted-foreground w-5 text-center">{ep.episodeNumber}</span>
-            <span className="flex-1 text-sm text-white">{ep.title}</span>
-            {ep.durationMinutes && <span className="text-xs text-muted-foreground">{ep.durationMinutes} min</span>}
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
-              onClick={() => { if (confirm("Supprimer cet épisode ?")) deleteEpisode.mutate({ episodeId: ep.id }, { onSuccess: () => refetch() }); }}>
-              <Trash2 className="h-3 w-3" />
-            </Button>
+            <div className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-secondary/20 transition-colors group">
+              <span className="text-xs font-bold text-muted-foreground w-5 text-center">{ep.episodeNumber}</span>
+              <span className="flex-1 text-sm text-white truncate">{ep.title}</span>
+              {ep.videoUrl && <span className="text-[10px] text-green-400/80">●</span>}
+              {ep.durationMinutes && <span className="text-xs text-muted-foreground">{ep.durationMinutes} min</span>}
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all"
+                onClick={() => openEditEp(ep)}>
+                <Edit className="h-3 w-3" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+                onClick={() => { if (confirm("Supprimer cet épisode ?")) deleteEpisode.mutate({ episodeId: ep.id }, { onSuccess: () => refetch() }); }}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+            {editingEp === ep.id && (
+              <form onSubmit={(e) => handleEdit(e, ep.id)} className="flex flex-col gap-2 py-2 px-2 border-t border-white/10">
+                {epInputs}
+                <div className="flex items-center gap-2">
+                  <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-white">Enregistrer</Button>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground"
+                    onClick={() => { setEditingEp(null); setEpForm({ ...emptyEp }); }}>annuler</Button>
+                </div>
+              </form>
+            )}
           </motion.div>
         ))}
       </AnimatePresence>
@@ -595,26 +917,11 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col gap-2 pt-2 border-t border-white/10 overflow-hidden"
           >
+            {epInputs}
             <div className="flex items-center gap-2">
-              <Input type="number" required value={epForm.episodeNumber}
-                onChange={e => setEpForm(p => ({ ...p, episodeNumber: e.target.value }))}
-                placeholder="N°" className="h-7 w-[70px] text-xs bg-secondary border-white/10 text-white" />
-              <Input required value={epForm.title}
-                onChange={e => setEpForm(p => ({ ...p, title: e.target.value }))}
-                placeholder="Titre" className="h-7 flex-1 text-xs bg-secondary border-white/10 text-white" />
-              <Input type="number" value={epForm.durationMinutes}
-                onChange={e => setEpForm(p => ({ ...p, durationMinutes: e.target.value }))}
-                placeholder="min" className="h-7 w-[80px] text-xs bg-secondary border-white/10 text-white" />
-            </div>
-            <FileDrop value={epForm.videoUrl} accept="video/*" hint="Glisse la vidéo de l'épisode ici ou clique"
-              onChange={(url) => setEpForm(p => ({ ...p, videoUrl: url }))} />
-            <div className="flex items-center gap-2">
-              <Input value={epForm.videoUrl}
-                onChange={e => setEpForm(p => ({ ...p, videoUrl: e.target.value }))}
-                placeholder="…ou colle une URL" className="h-7 flex-1 text-xs bg-secondary border-white/10 text-white" />
               <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-white">OK</Button>
               <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground"
-                onClick={() => setAdding(false)}>annuler</Button>
+                onClick={() => { setAdding(false); setEpForm({ ...emptyEp }); }}>annuler</Button>
             </div>
           </motion.form>
         ) : (
@@ -624,7 +931,7 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={() => setAdding(true)}
+            onClick={() => { setEpForm({ ...emptyEp }); setEditingEp(null); setAdding(true); }}
             className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 pt-1"
           >
             <Plus className="h-3 w-3" /> Ajouter un épisode

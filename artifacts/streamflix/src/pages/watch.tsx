@@ -51,7 +51,7 @@ export default function Watch() {
   const driveEmbed = getDriveEmbedUrl(videoUrl || "");
 
   // Next-episode chaining (series): flat ordered list across seasons.
-  const allEpisodes = (content?.seasons ?? []).flatMap((s) => s.episodes ?? []);
+  const allEpisodes = (content?.seasons ?? []).flatMap((s) => s.episodes ?? []).filter((e: any) => e.videoUrl && e.isPublished !== false);
   const currentEpIndex = episodeId ? allEpisodes.findIndex((e) => e.id === episodeId) : -1;
   const nextEpisode = currentEpIndex >= 0 && currentEpIndex < allEpisodes.length - 1 ? allEpisodes[currentEpIndex + 1] : undefined;
   const goToNext = () => { if (nextEpisode) setLocation(`/watch/${contentId}?episodeId=${nextEpisode.id}`); };

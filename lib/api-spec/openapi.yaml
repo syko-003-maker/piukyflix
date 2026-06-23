@@ -1278,6 +1278,8 @@ components:
           type: ["string", "null"]
         durationMinutes:
           type: ["integer", "null"]
+        isPublished:
+          type: boolean
         createdAt:
           type: string
       required:
@@ -1302,6 +1304,8 @@ components:
           type: string
         durationMinutes:
           type: integer
+        isPublished:
+          type: boolean
       required:
         - episodeNumber
         - title
@@ -1321,6 +1325,8 @@ components:
           type: string
         durationMinutes:
           type: integer
+        isPublished:
+          type: boolean
 
     WatchHistoryEntry:
       type: object

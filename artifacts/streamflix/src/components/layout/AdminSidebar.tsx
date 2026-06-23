@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Film, FolderTree, Users, ArrowLeft, Mail, Megaphone } from "lucide-react";
+import { LayoutDashboard, Film, FolderTree, Users, ArrowLeft, Mail, Megaphone, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useGetMe } from "@workspace/api-client-react";
@@ -13,6 +13,7 @@ export function AdminSidebar() {
     { href: "/admin", label: "Vue d'ensemble", icon: LayoutDashboard },
     { href: "/admin/content", label: "Contenu", icon: Film },
     { href: "/admin/categories", label: "Catégories", icon: FolderTree },
+    { href: "/admin/requests", label: "Demandes", icon: MessageSquare },
     // User management is admin-only (moderators manage content only).
     ...(isAdmin
       ? [

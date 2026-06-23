@@ -140,6 +140,7 @@ router.get("/content/:id", async (req, res) => {
         id: e.id, seasonId: e.seasonId, episodeNumber: e.episodeNumber,
         title: e.title, description: e.description, videoUrl: e.videoUrl,
         thumbnailUrl: e.thumbnailUrl, durationMinutes: e.durationMinutes,
+        isPublished: e.isPublished,
         createdAt: e.createdAt.toISOString(),
       }))
     };

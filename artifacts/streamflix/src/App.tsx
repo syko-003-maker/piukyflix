@@ -24,6 +24,7 @@ import AdminCategories from "@/pages/admin/categories";
 import AdminUsers from "@/pages/admin/users";
 import AdminInvite from "@/pages/admin/invite";
 import AdminAds from "@/pages/admin/ads";
+import AdminRequests from "@/pages/admin/requests";
 
 const queryClient = new QueryClient();
 
@@ -221,6 +222,9 @@ function ClerkProviderWithRoutes() {
           </Route>
           <Route path="/admin/ads">
             <AdminRoute component={AdminAds} adminOnly />
+          </Route>
+          <Route path="/admin/requests">
+            <AdminRoute component={AdminRequests} />
           </Route>
 
           <Route path="/sign-in/*?" component={SignInPage} />

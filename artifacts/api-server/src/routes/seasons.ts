@@ -12,7 +12,7 @@ function formatSeason(s: any) {
 }
 
 function formatEpisode(e: any) {
-  return { id: e.id, seasonId: e.seasonId, episodeNumber: e.episodeNumber, title: e.title, description: e.description, videoUrl: e.videoUrl, thumbnailUrl: e.thumbnailUrl, durationMinutes: e.durationMinutes, createdAt: e.createdAt.toISOString() };
+  return { id: e.id, seasonId: e.seasonId, episodeNumber: e.episodeNumber, title: e.title, description: e.description, videoUrl: e.videoUrl, thumbnailUrl: e.thumbnailUrl, durationMinutes: e.durationMinutes, isPublished: e.isPublished, createdAt: e.createdAt.toISOString() };
 }
 
 router.get("/content/:contentId/seasons", async (req, res) => {
@@ -55,8 +55,8 @@ router.post("/seasons/:seasonId/episodes", async (req, res) => {
   if (!await requireStaff(req, res)) return;
   const parsed = CreateEpisodeBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
-  const { episodeNumber, title, description, videoUrl, thumbnailUrl, durationMinutes } = parsed.data;
-  const e = await db.insert(episodesTable).values({ seasonId: Number(req.params.seasonId), episodeNumber, title, description, videoUrl, thumbnailUrl, durationMinutes: durationMinutes ? Number(durationMinutes) : null }).returning();
+  const { episodeNumber, title, description, videoUrl, thumbnailUrl, durationMinutes, isPublished } = parsed.data;
+  const e = await db.insert(episodesTable).values({ seasonId: Number(req.params.seasonId), episodeNumber, title, description, videoUrl, thumbnailUrl, durationMinutes: durationMinutes ? Number(durationMinutes) : null, isPublished: isPublished ?? true }).returning();
   res.status(201).json(formatEpisode(e[0]));
 });
 
@@ -64,8 +64,16 @@ router.patch("/episodes/:episodeId", async (req, res) => {
   if (!await requireStaff(req, res)) return;
   const parsed = UpdateEpisodeBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Données invalides", details: parsed.error.issues }); return; }
-  const { episodeNumber, title, description, videoUrl, thumbnailUrl, durationMinutes } = parsed.data;
-  const e = await db.update(episodesTable).set({ episodeNumber, title, description, videoUrl, thumbnailUrl, durationMinutes: durationMinutes ? Number(durationMinutes) : null }).where(eq(episodesTable.id, Number(req.params.episodeId))).returning();
+  const { episodeNumber, title, description, videoUrl, thumbnailUrl, durationMinutes, isPublished } = parsed.data;
+  const e = await db.update(episodesTable).set({
+    ...(episodeNumber !== undefined && { episodeNumber }),
+    ...(title !== undefined && { title }),
+    ...(description !== undefined && { description }),
+    ...(videoUrl !== undefined && { videoUrl }),
+    ...(thumbnailUrl !== undefined && { thumbnailUrl }),
+    ...(durationMinutes !== undefined && { durationMinutes: durationMinutes ? Number(durationMinutes) : null }),
+    ...(isPublished !== undefined && { isPublished }),
+  }).where(eq(episodesTable.id, Number(req.params.episodeId))).returning();
   if (!e[0]) { res.status(404).json({ error: "Not found" }); return; }
   res.json(formatEpisode(e[0]));
 });

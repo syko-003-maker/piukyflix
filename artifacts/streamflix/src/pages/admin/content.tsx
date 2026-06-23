@@ -836,7 +836,7 @@ function SeasonsPanel({ contentId }: { contentId: number }) {
   );
 }
 
-const emptyEp = { episodeNumber: "", title: "", description: "", videoUrl: "", thumbnailUrl: "", durationMinutes: "" };
+const emptyEp = { episodeNumber: "", title: "", description: "", videoUrl: "", thumbnailUrl: "", durationMinutes: "", isPublished: true };
 
 function EpisodesPanel({ seasonId }: { seasonId: number }) {
   const { data: episodes, refetch } = useListEpisodes(seasonId, {
@@ -856,6 +856,7 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
     videoUrl: epForm.videoUrl || undefined,
     thumbnailUrl: epForm.thumbnailUrl || undefined,
     durationMinutes: epForm.durationMinutes ? Number(epForm.durationMinutes) : undefined,
+    isPublished: epForm.isPublished,
   });
 
   const handleAdd = (e: React.FormEvent) => {
@@ -869,6 +870,7 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
       episodeNumber: String(ep.episodeNumber ?? ""), title: ep.title || "",
       description: ep.description || "", videoUrl: ep.videoUrl || "",
       thumbnailUrl: ep.thumbnailUrl || "", durationMinutes: ep.durationMinutes?.toString() || "",
+      isPublished: ep.isPublished ?? true,
     });
     setAdding(false);
     setEditingEp(ep.id);
@@ -903,6 +905,12 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
         placeholder="…ou colle une URL vidéo (Drive, R2…)" className="h-7 text-xs bg-secondary border-white/10 text-white" />
       <FileDrop value={epForm.thumbnailUrl} accept="image/*" hint="Miniature de l'épisode (optionnel)"
         onChange={(url) => setEpForm(p => ({ ...p, thumbnailUrl: url }))} />
+      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+        <input type="checkbox" checked={epForm.isPublished}
+          onChange={(e) => setEpForm(p => ({ ...p, isPublished: e.target.checked }))}
+          className="h-3.5 w-3.5 rounded border-white/10 accent-primary" />
+        Publié (visible sur le site — décoche pour préparer l'épisode sans l'afficher)
+      </label>
     </>
   );
 
@@ -920,8 +928,14 @@ function EpisodesPanel({ seasonId }: { seasonId: number }) {
             <div className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-secondary/20 transition-colors group">
               <span className="text-xs font-bold text-muted-foreground w-5 text-center">{ep.episodeNumber}</span>
               <span className="flex-1 text-sm text-white truncate">{ep.title}</span>
-              {ep.videoUrl && <span className="text-[10px] text-green-400/80">●</span>}
+              {!ep.videoUrl && <span className="rounded bg-orange-500/15 px-1.5 py-0.5 text-[10px] text-orange-400">sans vidéo</span>}
+              {ep.isPublished === false && <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">masqué</span>}
               {ep.durationMinutes && <span className="text-xs text-muted-foreground">{ep.durationMinutes} min</span>}
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all"
+                title={ep.isPublished === false ? "Publier l'épisode" : "Masquer l'épisode"}
+                onClick={() => updateEpisode.mutate({ episodeId: ep.id, data: { isPublished: !ep.isPublished } as any }, { onSuccess: () => refetch() })}>
+                {ep.isPublished === false ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+              </Button>
               <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all"
                 onClick={() => openEditEp(ep)}>
                 <Edit className="h-3 w-3" />

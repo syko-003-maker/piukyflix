@@ -192,7 +192,7 @@ export default function ContentDetail() {
                 </div>
                 
                 <div className="space-y-4">
-                  {episodes?.map(ep => (
+                  {(episodes ?? []).filter((ep: any) => ep.videoUrl && ep.isPublished !== false).map(ep => (
                     <Link key={ep.id} href={`/watch/${content.id}?episodeId=${ep.id}`}>
                       <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors border border-border group">
                         <div className="text-xl font-bold text-muted-foreground w-8 text-center group-hover:text-white">
@@ -220,9 +220,9 @@ export default function ContentDetail() {
                       </div>
                     </Link>
                   ))}
-                  {episodes?.length === 0 && (
+                  {(episodes ?? []).filter((ep: any) => ep.videoUrl && ep.isPublished !== false).length === 0 && (
                     <div className="text-muted-foreground text-center py-8 bg-secondary/20 rounded-lg">
-                      Aucun épisode trouvé pour cette saison.
+                      Aucun épisode disponible pour cette saison.
                     </div>
                   )}
                 </div>

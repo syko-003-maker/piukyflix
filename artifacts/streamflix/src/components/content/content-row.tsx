@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { ContentCard } from "./content-card";
 
 /** Netflix-style horizontal carousel of poster cards with hover arrows. */
@@ -13,7 +14,13 @@ export function ContentRow({ title, items }: { title: string; items: any[] }) {
   };
 
   return (
-    <section className="group/row relative">
+    <motion.section
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="group/row relative"
+    >
       <h2 className="mb-3 text-xl font-bold text-white md:text-2xl">{title}</h2>
       <div className="relative">
         <button
@@ -45,6 +52,6 @@ export function ContentRow({ title, items }: { title: string; items: any[] }) {
           <ChevronRight className="h-9 w-9" />
         </button>
       </div>
-    </section>
+    </motion.section>
   );
 }

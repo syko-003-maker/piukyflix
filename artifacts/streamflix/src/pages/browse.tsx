@@ -3,8 +3,9 @@ import { useGetFeaturedContent, useListContent, useListWatchHistory, useListCate
 import { Button } from "@/components/ui/button";
 import { Play, Info, Star } from "lucide-react";
 import { Link } from "wouter";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ContentRow } from "@/components/content/content-row";
 import { ContentCard } from "@/components/content/content-card";
 
@@ -22,7 +23,14 @@ export default function Browse() {
   const { data: history } = useListWatchHistory({ query: { enabled: !!isSignedIn } });
 
   const items: any[] = content?.items ?? [];
-  const heroItem: any = featured?.[0] || items[0];
+  const heroPool: any[] = (featured && featured.length ? featured : items).slice(0, 5);
+  const [heroIdx, setHeroIdx] = useState(0);
+  useEffect(() => {
+    if (heroPool.length <= 1) return;
+    const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroPool.length), 7000);
+    return () => clearInterval(t);
+  }, [heroPool.length]);
+  const heroItem: any = heroPool[heroIdx] ?? heroPool[0] ?? items[0];
   const continueWatching = (history ?? []).filter((h) => !h.completed).slice(0, 12);
   const movies = items.filter((i) => i.contentType === "movie");
   const series = items.filter((i) => i.contentType === "series");
@@ -32,22 +40,36 @@ export default function Browse() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero cinématique */}
+        {/* Hero cinématique rotatif */}
         {isLoadingFeatured || isLoadingContent ? (
-          <div className="h-[80vh] w-full animate-pulse bg-secondary" />
+          <div className="h-[85vh] min-h-[520px] w-full animate-pulse bg-secondary" />
         ) : heroItem ? (
           <section className="relative h-[85vh] min-h-[520px] w-full overflow-hidden">
-            <div className="absolute inset-0">
-              {heroItem.backdropUrl && (
-                <img src={heroItem.backdropUrl} alt={heroItem.title} className="h-full w-full object-cover" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-background/10" />
-              <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-transparent" />
-            </div>
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                key={heroItem.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.2, ease: "easeInOut" }}
+                className="absolute inset-0"
+              >
+                {heroItem.backdropUrl && <img src={heroItem.backdropUrl} alt="" className="kenburns h-full w-full object-cover" />}
+              </motion.div>
+            </AnimatePresence>
 
-            <div className="container relative z-10 flex h-full flex-col justify-end px-4 pb-28 md:px-6">
-              <div className="max-w-2xl space-y-5">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/50 to-background/10" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-transparent" />
+
+            <div className="container relative z-10 flex h-full flex-col justify-end px-4 pb-24 md:px-6">
+              <motion.div
+                key={`${heroItem.id}-text`}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className="max-w-2xl space-y-5"
+              >
                 <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-200">
                   {heroItem.averageRating != null && (
                     <span className="flex items-center gap-1 text-yellow-400">
@@ -75,7 +97,20 @@ export default function Browse() {
                     </Button>
                   </Link>
                 </div>
-              </div>
+              </motion.div>
+
+              {heroPool.length > 1 && (
+                <div className="mt-6 flex gap-2">
+                  {heroPool.map((h, i) => (
+                    <button
+                      key={h.id}
+                      aria-label={`Slide ${i + 1}`}
+                      onClick={() => setHeroIdx(i)}
+                      className={`h-1.5 rounded-full transition-all ${i === heroIdx ? "w-8 bg-primary" : "w-3 bg-white/30 hover:bg-white/50"}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </section>
         ) : null}

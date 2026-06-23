@@ -7,12 +7,16 @@ export function ContentCard({ item }: { item: any }) {
     <Link href={`/content/${item.id}`}>
       <div className="group relative aspect-[2/3] cursor-pointer overflow-hidden rounded-xl bg-secondary shadow-md shadow-black/40 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-primary/40 hover:ring-2 hover:ring-primary/70">
         {item.posterUrl ? (
-          <img
-            src={item.posterUrl}
-            alt={item.title}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
+          <>
+            {/* blurred fill so the full poster shows with no crop and no black bars */}
+            <img src={item.posterUrl} aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-xl" />
+            <img
+              src={item.posterUrl}
+              alt={item.title}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.04]"
+            />
+          </>
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center">
             {item.contentType === "movie" ? <Film className="h-8 w-8 text-muted-foreground" /> : <Tv className="h-8 w-8 text-muted-foreground" />}

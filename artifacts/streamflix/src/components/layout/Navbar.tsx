@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { Show, useClerk, useUser } from "@clerk/react";
-import { Search, LogOut, LayoutDashboard } from "lucide-react";
+import { Search, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,6 +30,9 @@ export function Navbar() {
   }, []);
   const navCls = (href: string) =>
     `text-sm font-medium transition-colors ${location === href ? "text-white" : "text-muted-foreground hover:text-white"}`;
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileLinkCls = (href: string) =>
+    `rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${location === href ? "bg-primary/15 text-white" : "text-muted-foreground hover:bg-secondary hover:text-white"}`;
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? "border-b border-white/10 bg-background/90 shadow-lg shadow-black/30 backdrop-blur-md" : "border-b border-transparent bg-background/30 backdrop-blur-sm"}`}>
@@ -100,8 +103,13 @@ export function Navbar() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Button variant="ghost" size="icon" className="text-white md:hidden" onClick={() => setMobileOpen((v) => !v)}>
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <span className="sr-only">Menu</span>
+            </Button>
           </Show>
-          
+
           <Show when="signed-out">
             <Button variant="ghost" onClick={() => setLocation("/sign-in")} className="text-white hover:text-primary hover:bg-transparent">
               Se connecter
@@ -112,6 +120,21 @@ export function Navbar() {
           </Show>
         </div>
       </div>
+
+      <Show when="signed-in">
+        {mobileOpen && (
+          <nav className="flex flex-col gap-1 border-t border-white/10 bg-background/95 px-4 py-3 backdrop-blur md:hidden">
+            <Link href="/browse" onClick={() => setMobileOpen(false)} className={mobileLinkCls("/browse")}>Catalogue</Link>
+            <Link href="/search" onClick={() => setMobileOpen(false)} className={mobileLinkCls("/search")}>Recherche</Link>
+            <Link href="/favorites" onClick={() => setMobileOpen(false)} className={mobileLinkCls("/favorites")}>Ma liste</Link>
+            <Link href="/history" onClick={() => setMobileOpen(false)} className={mobileLinkCls("/history")}>Historique</Link>
+            <Link href="/requests" onClick={() => setMobileOpen(false)} className={mobileLinkCls("/requests")}>Demandes</Link>
+            {isAdmin && (
+              <Link href="/admin" onClick={() => setMobileOpen(false)} className={mobileLinkCls("/admin")}>Admin</Link>
+            )}
+          </nav>
+        )}
+      </Show>
     </header>
   );
 }

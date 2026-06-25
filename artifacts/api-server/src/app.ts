@@ -90,9 +90,20 @@ if (process.env.SERVE_CLIENT === "true") {
   const clientDir =
     process.env.CLIENT_DIST ||
     path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../streamflix/dist/public");
-  app.use(express.static(clientDir));
+  // Content-hashed assets can be cached forever; index.html must always revalidate
+  // so a fresh deploy shows up immediately (avoids stale "nothing changed" caches).
+  app.use(express.static(clientDir, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-cache");
+      } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      }
+    },
+  }));
   app.use((req, res, next) => {
     if (req.method !== "GET" || req.path.startsWith("/api")) return next();
+    res.setHeader("Cache-Control", "no-cache");
     res.sendFile(path.join(clientDir, "index.html"));
   });
 }

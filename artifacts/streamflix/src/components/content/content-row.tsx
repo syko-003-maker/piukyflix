@@ -34,7 +34,7 @@ export function ContentRow({ title, items }: { title: string; items: any[] }) {
 
         <div
           ref={ref}
-          className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="-mx-2 flex gap-3 overflow-x-auto px-2 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {items.map((item) => (
             <div key={item.id} className="w-32 flex-none sm:w-36 md:w-44">

@@ -383,18 +383,18 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(42% 52% at 12% 14%, hsl(265 89% 55% / 0.55), transparent 70%),
-    radial-gradient(40% 48% at 88% 8%, hsl(320 85% 58% / 0.45), transparent 70%),
-    radial-gradient(52% 60% at 74% 90%, hsl(265 89% 58% / 0.52), transparent 70%),
-    radial-gradient(46% 54% at 24% 84%, hsl(292 85% 58% / 0.42), transparent 70%);
-  filter: blur(30px) saturate(150%);
-  animation: aurora-drift 18s ease-in-out infinite alternate;
+    radial-gradient(46% 56% at 12% 12%, hsl(265 90% 62% / 0.70), transparent 66%),
+    radial-gradient(44% 52% at 90% 6%, hsl(320 90% 62% / 0.58), transparent 66%),
+    radial-gradient(56% 64% at 76% 92%, hsl(270 90% 64% / 0.66), transparent 66%),
+    radial-gradient(50% 58% at 22% 86%, hsl(295 90% 64% / 0.55), transparent 66%);
+  filter: blur(24px) saturate(160%);
+  animation: aurora-drift 14s ease-in-out infinite alternate;
   will-change: transform;
 }
 @keyframes aurora-drift {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  50%  { transform: translate3d(4%, -3%, 0) scale(1.12); }
-  100% { transform: translate3d(-4%, 4%, 0) scale(1.08); }
+  0%   { transform: translate3d(0, 0, 0) scale(1.02); }
+  50%  { transform: translate3d(6%, -4%, 0) scale(1.16); }
+  100% { transform: translate3d(-6%, 5%, 0) scale(1.1); }
 }
 @media (prefers-reduced-motion: reduce) {
   body::before { animation: none; }

@@ -62,7 +62,7 @@ router.post("/auth/sync", async (req, res) => {
 
   if (existing[0]) {
     const updated = await db.update(usersTable)
-      .set({ email, username, avatarUrl, lastActiveAt: new Date(), ...(isAdmin ? { role: "admin" } : {}) })
+      .set({ email, avatarUrl, lastActiveAt: new Date(), ...(isAdmin ? { role: "admin" } : {}) })
       .where(eq(usersTable.clerkId, userId))
       .returning();
     const u = updated[0];
@@ -91,6 +91,19 @@ router.post("/auth/sync", async (req, res) => {
         eq(invitationsTable.revoked, false),
       ));
   }
+  res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, isVip: u.isVip, createdAt: u.createdAt.toISOString() });
+});
+
+router.post("/auth/username", async (req, res) => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const raw = (req.body as any)?.username;
+  if (typeof raw !== "string") { res.status(400).json({ error: "Pseudo invalide" }); return; }
+  const username = raw.trim().slice(0, 30);
+  if (username.length < 2) { res.status(400).json({ error: "Le pseudo doit faire au moins 2 caractères" }); return; }
+  const updated = await db.update(usersTable).set({ username }).where(eq(usersTable.clerkId, userId)).returning();
+  if (!updated[0]) { res.status(404).json({ error: "User not found" }); return; }
+  const u = updated[0];
   res.json({ id: u.id, clerkId: u.clerkId, email: u.email, username: u.username, role: u.role, avatarUrl: u.avatarUrl, isVip: u.isVip, createdAt: u.createdAt.toISOString() });
 });
 

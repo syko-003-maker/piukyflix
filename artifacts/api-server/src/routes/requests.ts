@@ -27,7 +27,7 @@ router.get("/requests", async (req, res) => {
   const userIds = [...new Set(rows.map((r) => r.userId).filter(Boolean))] as string[];
   const requesters = userIds.length ? await db.select().from(usersTable).where(inArray(usersTable.id, userIds)) : [];
   const nameMap: Record<string, string> = {};
-  requesters.forEach((u) => { nameMap[u.id] = u.username || u.email; });
+  requesters.forEach((u) => { nameMap[u.id] = u.username || "Utilisateur"; });
 
   res.json(rows.map((r) => ({
     id: r.id,

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { Show, useClerk, useUser } from "@clerk/react";
-import { Search, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
+import { Search, LogOut, LayoutDashboard, Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,7 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useGetMe } from "@workspace/api-client-react";
+import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function Navbar() {
   const [location, setLocation] = useLocation();
@@ -33,6 +36,25 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileLinkCls = (href: string) =>
     `rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${location === href ? "bg-primary/15 text-white" : "text-muted-foreground hover:bg-secondary hover:text-white"}`;
+  const queryClient = useQueryClient();
+  const [usernameOpen, setUsernameOpen] = useState(false);
+  const [usernameInput, setUsernameInput] = useState("");
+  const [savingUsername, setSavingUsername] = useState(false);
+  const openUsername = () => { setUsernameInput(me?.username || ""); setUsernameOpen(true); };
+  const saveUsername = async () => {
+    if (usernameInput.trim().length < 2) return;
+    setSavingUsername(true);
+    try {
+      const res = await fetch("/api/auth/username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: usernameInput.trim() }),
+      });
+      if (res.ok) { queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() }); setUsernameOpen(false); }
+    } finally {
+      setSavingUsername(false);
+    }
+  };
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? "border-b border-white/10 bg-background/90 shadow-lg shadow-black/30 backdrop-blur-md" : "border-b border-transparent bg-background/30 backdrop-blur-sm"}`}>
@@ -97,6 +119,11 @@ export function Navbar() {
                     <DropdownMenuSeparator />
                   </>
                 )}
+                <DropdownMenuItem onClick={openUsername}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Modifier mon pseudo</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut({ redirectUrl: basePath || "/" })}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Se déconnecter</span>
@@ -135,6 +162,23 @@ export function Navbar() {
           </nav>
         )}
       </Show>
+
+      <Dialog open={usernameOpen} onOpenChange={setUsernameOpen}>
+        <DialogContent className="rounded-2xl border-white/10 bg-card text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+              <User className="h-5 w-5 text-primary" /> Mon pseudo
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Ton pseudo s'affiche à la place de ton e-mail dans les commentaires et les demandes.</p>
+          <Input value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} maxLength={30}
+            placeholder="Ton pseudo" className="bg-secondary/50 border-white/10 text-white" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUsernameOpen(false)} className="border-white/10 text-white hover:bg-secondary">Annuler</Button>
+            <Button onClick={saveUsername} disabled={savingUsername || usernameInput.trim().length < 2} className="bg-primary font-bold text-white">Enregistrer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

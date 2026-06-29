@@ -150,7 +150,7 @@ router.get("/comments/:contentId", async (req, res) => {
     .orderBy(desc(commentsTable.createdAt));
   res.json(comments.map(c => ({
     id: c.comment.id, userId: c.comment.userId, contentId: c.comment.contentId,
-    text: c.comment.text, username: c.user?.username ?? c.user?.email ?? null,
+    text: c.comment.text, username: c.user?.username ?? null,
     avatarUrl: c.user?.avatarUrl ?? null, createdAt: c.comment.createdAt.toISOString(),
   })));
 });
@@ -163,7 +163,7 @@ router.post("/comments/:contentId", async (req, res) => {
   const text = parsed.data.text.trim();
   if (!text) { res.status(400).json({ error: "Le commentaire ne peut pas être vide" }); return; }
   const comment = await db.insert(commentsTable).values({ userId: user.id, contentId: Number(req.params.contentId), text }).returning();
-  res.status(201).json({ id: comment[0].id, userId: comment[0].userId, contentId: comment[0].contentId, text: comment[0].text, username: user.username ?? user.email, avatarUrl: user.avatarUrl, createdAt: comment[0].createdAt.toISOString() });
+  res.status(201).json({ id: comment[0].id, userId: comment[0].userId, contentId: comment[0].contentId, text: comment[0].text, username: user.username ?? null, avatarUrl: user.avatarUrl, createdAt: comment[0].createdAt.toISOString() });
 });
 
 router.delete("/comments/item/:commentId", async (req, res) => {

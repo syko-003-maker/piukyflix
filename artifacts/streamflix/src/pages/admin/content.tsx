@@ -18,7 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Reveal } from "@/components/admin/admin-ui";
 import { TmdbImport } from "@/components/admin/tmdb-import";
-import { tmdbDetails, importTmdbSeries } from "@/lib/tmdb";
+import { tmdbDetails, importTmdbSeries, syncTmdbSeries } from "@/lib/tmdb";
 import { FileDrop } from "@/components/admin/file-drop";
 
 type ContentType = "movie" | "series";
@@ -222,6 +222,26 @@ export default function AdminContent() {
     }
   };
 
+  const handleSync = async (item: any) => {
+    let tmdbId = item.tmdbId;
+    if (!tmdbId) {
+      const input = prompt("ID TMDB de cette série (dans l'URL TMDB, ex: themoviedb.org/tv/60625 → 60625) :");
+      if (!input) return;
+      tmdbId = Number(input);
+      if (!Number.isFinite(tmdbId) || tmdbId <= 0) { alert("ID TMDB invalide"); return; }
+    }
+    setImportingId(item.id);
+    try {
+      const r = await syncTmdbSeries(item.id, tmdbId);
+      refetch();
+      setImportingId(null);
+      alert(`Série synchronisée :\n• ${r.seasonsAdded} saison(s) ajoutée(s)\n• ${r.episodesAdded} épisode(s) ajouté(s)\n• ${r.episodesUpdated} épisode(s) mis à jour (miniatures/infos)\n\nLes vidéos déjà en place sont préservées.`);
+    } catch (e) {
+      setImportingId(null);
+      alert(e instanceof Error ? e.message : "Synchronisation échouée");
+    }
+  };
+
   const f = (key: keyof ContentForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [key]: e.target.value }));
 
@@ -422,12 +442,12 @@ export default function AdminContent() {
                       <TableCell className="text-gray-300 text-sm">{item.viewCount.toLocaleString("fr-FR")}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          {item.contentType === "series" && item.tmdbId && (
+                          {item.contentType === "series" && (
                             <Button variant="ghost" size="icon" className="text-gray-400 hover:text-primary hover:bg-white/5 h-8 w-8 transition-colors"
-                              title="Synchroniser avec TMDB (ajoute les nouveaux épisodes)"
+                              title="Synchroniser avec TMDB (miniatures, infos, épisodes manquants)"
                               disabled={importingId !== null}
-                              onClick={() => handleTmdbAdd("series", item.tmdbId)}>
-                              <RefreshCw className={`h-4 w-4 ${importingId === item.tmdbId ? "animate-spin" : ""}`} />
+                              onClick={() => handleSync(item)}>
+                              <RefreshCw className={`h-4 w-4 ${importingId === item.id ? "animate-spin" : ""}`} />
                             </Button>
                           )}
                           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-white/5 h-8 w-8 transition-colors"

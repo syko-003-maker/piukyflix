@@ -56,3 +56,20 @@ export async function importTmdbSeries(id: number): Promise<TmdbImportResult> {
   if (!res.ok) throw new Error(await readError(res));
   return res.json();
 }
+
+export interface TmdbSyncResult {
+  seasonsAdded: number;
+  episodesAdded: number;
+  episodesUpdated: number;
+}
+
+/** Link an existing series to a TMDB id and fill gaps (thumbnails, descriptions, missing episodes) without touching videos. */
+export async function syncTmdbSeries(contentId: number, tmdbId: number): Promise<TmdbSyncResult> {
+  const res = await fetch(`/api/tmdb/sync-series`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contentId, tmdbId }),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return res.json();
+}
